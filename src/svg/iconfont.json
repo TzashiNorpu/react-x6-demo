@@ -1,0 +1,86 @@
+{
+  "id": "4053409",
+  "name": "流程图",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "35382949",
+      "name": "trapezoid-figure-form-geometry-graphic-line-svgrep",
+      "font_class": "trapezoid",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "11395234",
+      "name": "空五角星",
+      "font_class": "pentagram",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "27878691",
+      "name": "宽箭头-左",
+      "font_class": "left-arrow",
+      "unicode": "e6e6",
+      "unicode_decimal": 59110
+    },
+    {
+      "icon_id": "27878695",
+      "name": "宽箭头-右",
+      "font_class": "right-arrow",
+      "unicode": "e6e7",
+      "unicode_decimal": 59111
+    },
+    {
+      "icon_id": "35382607",
+      "name": "rounded-rectangle",
+      "font_class": "rounded-rectangle",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "35382608",
+      "name": "rectangle",
+      "font_class": "rectangle",
+      "unicode": "e602",
+      "unicode_decimal": 58882
+    },
+    {
+      "icon_id": "35382709",
+      "name": "triangle",
+      "font_class": "triangle",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "35382710",
+      "name": "circle",
+      "font_class": "circle",
+      "unicode": "e604",
+      "unicode_decimal": 58884
+    },
+    {
+      "icon_id": "35382711",
+      "name": "parallelogram",
+      "font_class": "parallelogram",
+      "unicode": "e605",
+      "unicode_decimal": 58885
+    },
+    {
+      "icon_id": "35382712",
+      "name": "diamond",
+      "font_class": "diamond",
+      "unicode": "e606",
+      "unicode_decimal": 58886
+    },
+    {
+      "icon_id": "11467418",
+      "name": "矩形",
+      "font_class": "juxing",
+      "unicode": "e609",
+      "unicode_decimal": 58889
+    }
+  ]
+}

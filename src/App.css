@@ -1,0 +1,190 @@
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
+  display: block;
+}
+body {
+  line-height: 1;
+}
+ol,
+ul {
+  list-style: none;
+}
+blockquote,
+q {
+  quotes: none;
+}
+blockquote:before,
+blockquote:after,
+q:before,
+q:after {
+  content: "";
+  content: none;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+html {
+  /* rem em */
+  /*em 相对于父元素的font-size*/
+  /*rem 相对于根元素html的font-size, r就是root的意思*/
+  /* 浏览器默认 font-size = 16px */
+  /*16 * 62.5% = 10px*/
+  /*1rem === 10px*/
+  font-size: 62.5%;
+}
+
+/*viewport height === vh*/
+html body #root {
+  min-height: 100vh;
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 100%;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-copy::before {
+  content: "\e8a2";
+}
+
+.icon-undo::before {
+  content: "\e8a5";
+}
+
+.icon-zoom-out::before {
+  content: "\e8a6";
+}
+
+.icon-actual-size::before {
+  content: "\e7cb";
+}
+
+.icon-redo::before {
+  content: "\e7cc";
+}
+
+.icon-fit::before {
+  content: "\e7cd";
+}
+
+.icon-delete::before {
+  content: "\e7ce";
+}
+
+.icon-to-front::before {
+  content: "\e7cf";
+}
+
+.icon-to-back::before {
+  content: "\e7d0";
+}
+
+.icon-paste::before {
+  content: "\e7d1";
+}
+
+.icon-zoom-in::before {
+  content: "\e7d2";
+}
