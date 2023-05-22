@@ -4,6 +4,9 @@ import { Snapline } from "@antv/x6-plugin-snapline";
 import { Stencil } from "@antv/x6-plugin-stencil";
 import styled from "@emotion/styled";
 import { Transform } from "@antv/x6-plugin-transform";
+import { Clipboard } from "@antv/x6-plugin-clipboard";
+import { Selection } from '@antv/x6-plugin-selection'
+
 import "./index.less";
 import { ToolBox } from "./toolbox";
 const commonAttrs = {
@@ -25,6 +28,21 @@ export default class X6_Flow extends React.Component {
         color: "#F2F7FA",
       },
     });
+
+
+    graph.use(
+      new Selection({
+        enabled: true,
+        showNodeSelectionBox: true,
+      })
+    );
+
+    graph.use(
+      new Clipboard({
+        enabled: true,
+        useLocalStorage: true,
+      })
+    );
     graph.use(
       new Snapline({
         enabled: true,
@@ -64,19 +82,7 @@ export default class X6_Flow extends React.Component {
       })
     );
 
-    graph.use(
-      new Selection({
-        enabled: true,
-        showNodeSelectionBox: true,
-      })
-    );
 
-    graph.use(
-      new Clipboard({
-        enabled: true,
-        useLocalStorage: true,
-      })
-    );
 
     const source = graph.addNode({
       x: 130,

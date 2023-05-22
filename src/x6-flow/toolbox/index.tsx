@@ -1,7 +1,8 @@
 import styled from "@emotion/styled";
 import { Tooltip } from "antd";
+import type { Graph } from "@antv/x6";
 import { config } from "./tools-config";
-export const ToolBox = () => {
+export const ToolBox = ({ graph: Graph }) => {
   return (
     <Container>
       {config.map((item) => {
@@ -9,7 +10,7 @@ export const ToolBox = () => {
           return (
             <Tooltip key={item.command} title={item.title}>
               <Command data-command={item.command}>
-                <span className={item.className}></span>
+                <span className={item.className} onClick={item.handler(graph)}></span>
               </Command>
             </Tooltip>
           );

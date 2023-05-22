@@ -1,19 +1,21 @@
 import { Graph } from "@antv/x6";
 import { message } from "antd";
 
+
+
 interface ToolType {
   type: "tool";
   title: string;
   command: string;
   className: string;
-  handler?: (graph: Graph, options: Props) => unknown;
+  handler?: (graph: Graph, options: OptionType) => void;
 }
 interface SepType {
   type: "sep";
   id: number;
 }
 
-type Props = {
+export type OptionType = {
   offset: number;
   useLocalStorage: boolean;
 };
@@ -40,7 +42,7 @@ export const config: (ToolType | SepType)[] = [
     title: "复制",
     command: "copy",
     className: "iconfont icon-copy",
-    handler: (graph: Graph, options: Props) => {
+    handler: (graph: Graph, options: OptionType) => {
       const cells = graph.getSelectedCells();
       if (cells && cells.length) {
         graph.copy(cells, options);
