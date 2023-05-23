@@ -5,10 +5,14 @@ import { Stencil } from "@antv/x6-plugin-stencil";
 import styled from "@emotion/styled";
 import { Transform } from "@antv/x6-plugin-transform";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
-import { Selection } from '@antv/x6-plugin-selection'
+import { Selection } from "@antv/x6-plugin-selection";
+import { Keyboard } from "@antv/x6-plugin-keyboard";
+import { History } from "@antv/x6-plugin-history";
+import { Scroller } from "@antv/x6-plugin-scroller";
 
 import "./index.less";
 import { ToolBox } from "./toolbox";
+import { message } from "antd";
 const commonAttrs = {
   body: {
     fill: "#fff",
@@ -17,74 +21,135 @@ const commonAttrs = {
   },
 };
 
-export default class X6_Flow extends React.Component {
-  private container: HTMLDivElement | undefined;
-  private stencilContainer: HTMLDivElement | undefined;
+interface Props {}
+
+interface State {
+  canUndo: boolean;
+  canRedo: boolean;
+}
+
+export default class X6_Flow extends React.Component<Props, State> {
+  private container: HTMLDivElement | null = null;
+  private stencilContainer: HTMLDivElement | null = null;
+  private graph: Graph | null = null;
+
+  private copyOptions = {
+    offset: 10,
+    useLocalStorage: true,
+  };
+  private resizingOptions: {
+    enabled: true;
+    minWidth?: number;
+    maxWidth?: number;
+    minHeight?: number;
+    maxHeight?: number;
+    orthogonal?: boolean;
+    restrict?: boolean;
+    preserveAspectRatio?: boolean;
+  } = {
+    enabled: true,
+    minWidth: 1,
+    maxWidth: 200,
+    minHeight: 1,
+    maxHeight: 150,
+    orthogonal: false,
+    restrict: false,
+    preserveAspectRatio: false,
+  };
+
+  private rotatingOptions: {
+    enabled: true;
+    grid?: number;
+  } = { enabled: true, grid: 10 };
+
+  state: State = {
+    canRedo: false,
+    canUndo: false,
+  };
 
   componentDidMount() {
+    if (this.container == null) {
+      message.error("初始化错误");
+      return;
+    }
+
     const graph = new Graph({
       container: this.container,
       background: {
         color: "#F2F7FA",
       },
     });
+    this.graph = graph;
 
+    if (this.graph == undefined || this.graph == null) {
+      message.error("初始化错误");
+      return;
+    }
 
-    graph.use(
+    this.graph.use(
       new Selection({
         enabled: true,
+        multiple: true,
+        rubberband: true,
+        movable: true,
         showNodeSelectionBox: true,
       })
     );
 
-    graph.use(
+    this.graph.use(
       new Clipboard({
         enabled: true,
         useLocalStorage: true,
       })
     );
-    graph.use(
+    this.graph.use(
       new Snapline({
         enabled: true,
         sharp: true,
       })
     );
 
-    const resizingOptions: {
-      enabled: true;
-      minWidth?: number;
-      maxWidth?: number;
-      minHeight?: number;
-      maxHeight?: number;
-      orthogonal?: boolean;
-      restrict?: boolean;
-      preserveAspectRatio?: boolean;
-    } = {
-      enabled: true,
-      minWidth: 1,
-      maxWidth: 200,
-      minHeight: 1,
-      maxHeight: 150,
-      orthogonal: false,
-      restrict: false,
-      preserveAspectRatio: false,
-    };
-
-    const rotatingOptions: {
-      enabled: true;
-      grid?: number;
-    } = { enabled: true, grid: 10 };
-
-    graph.use(
-      new Transform({
-        resizing: resizingOptions,
-        rotating: rotatingOptions,
+    this.graph.use(
+      new Keyboard({
+        enabled: true,
+        global: true,
       })
     );
 
+    this.graph.use(
+      new Transform({
+        resizing: this.resizingOptions,
+        rotating: this.rotatingOptions,
+      })
+    );
 
+    this.graph.use(
+      new History({
+        enabled: true,
+      })
+    );
 
-    const source = graph.addNode({
+    this.graph.use(
+      new Scroller({
+        enabled: true,
+        pageVisible: true,
+        pageBreak: true,
+        pannable: true,
+      })
+    );
+
+    this.graph.on("history:change", () => {
+      if (this.graph == null) {
+        message.error("初始化错误");
+        return;
+      }
+      this.setState({
+        canRedo: this.graph.canRedo(),
+        canUndo: this.graph.canUndo(),
+      });
+    });
+
+    const source = this.graph.addNode({
       x: 130,
       y: 30,
       width: 100,
@@ -101,7 +166,7 @@ export default class X6_Flow extends React.Component {
       },
     });
 
-    const target = graph.addNode({
+    const target = this.graph.addNode({
       x: 320,
       y: 240,
       width: 100,
@@ -118,7 +183,7 @@ export default class X6_Flow extends React.Component {
       },
     });
 
-    graph.addEdge({
+    this.graph.addEdge({
       source,
       target,
       attrs: {
@@ -129,11 +194,43 @@ export default class X6_Flow extends React.Component {
       },
     });
 
-    graph.centerContent();
+    this.graph.centerContent();
+
+    // ctrl+c ctrl+v
+    this.graph.bindKey("ctrl+c", () => {
+      if (this.graph == null) return;
+      const cells = this.graph.getSelectedCells();
+      if (cells.length) {
+        this.graph.copy(cells);
+      }
+      return false;
+    });
+
+    this.graph.bindKey("ctrl+v", () => {
+      if (this.graph == null) return;
+      if (!this.graph.isClipboardEmpty()) {
+        const cells = this.graph.paste(this.copyOptions);
+        this.graph.cleanSelection();
+        this.graph.select(cells);
+      }
+      return false;
+    });
+
+    this.graph.bindKey("ctrl+z", () => {
+      if (this.graph == null) return;
+      this.graph.undo();
+      return false;
+    });
+
+    this.graph.bindKey("delete", () => {
+      if (this.graph == null) return;
+      const cells = this.graph.getSelectedCells();
+      cells.map((cell) => cell.remove());
+    });
 
     const stencil = new Stencil({
       title: "Components",
-      target: graph,
+      target: this.graph,
       search(cell, keyword) {
         return cell.shape.indexOf(keyword) !== -1;
       },
@@ -158,7 +255,7 @@ export default class X6_Flow extends React.Component {
     if (this.stencilContainer != undefined)
       this.stencilContainer.appendChild(stencil.container);
 
-    const n1 = graph.createNode({
+    const n1 = this.graph.createNode({
       shape: "rect",
       x: 40,
       y: 40,
@@ -168,7 +265,7 @@ export default class X6_Flow extends React.Component {
       attrs: commonAttrs,
     });
 
-    const n2 = graph.createNode({
+    const n2 = this.graph.createNode({
       shape: "circle",
       x: 180,
       y: 40,
@@ -178,7 +275,7 @@ export default class X6_Flow extends React.Component {
       attrs: commonAttrs,
     });
 
-    const n3 = graph.createNode({
+    const n3 = this.graph.createNode({
       shape: "ellipse",
       x: 280,
       y: 40,
@@ -188,7 +285,7 @@ export default class X6_Flow extends React.Component {
       attrs: commonAttrs,
     });
 
-    const n4 = graph.createNode({
+    const n4 = this.graph.createNode({
       shape: "path",
       x: 420,
       y: 40,
@@ -202,8 +299,95 @@ export default class X6_Flow extends React.Component {
 
     stencil.load([n1, n2], "group1");
     stencil.load([n3, n4], "group2");
+    this.graph = graph;
   }
+  // copy
+  private onCopy = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    const cells = this.graph.getSelectedCells();
+    if (cells && cells.length) {
+      this.graph.copy(cells, this.copyOptions);
+      message.success("复制成功");
+    } else {
+      message.info("请先选中节点再复制");
+    }
+  };
 
+  // paste
+  private onPaste = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    if (this.graph.isClipboardEmpty()) {
+      message.info("剪切板为空，不可粘贴");
+    } else {
+      const cells = this.graph.paste(this.copyOptions);
+      this.graph.cleanSelection();
+      this.graph.select(cells);
+      message.success("粘贴成功");
+    }
+  };
+
+  // redo undo
+  onUndo = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    this.graph.undo();
+  };
+
+  onRedo = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    this.graph.redo();
+  };
+
+  onGraphCenter = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    this.graph.center();
+  };
+
+  onContentCenter = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    this.graph.centerContent();
+  };
+  onToBack = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    const cells = this.graph.getSelectedCells();
+    if (cells && cells.length) {
+      cells.map((cell) => cell.toBack());
+    } else {
+      message.info("请先选中节点再调整");
+    }
+  };
+  onToFront = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    const cells = this.graph.getSelectedCells();
+    if (cells && cells.length) {
+      cells.map((cell) => cell.toFront());
+    } else {
+      message.info("请先选中节点再调整");
+    }
+  };
   refContainer = (container: HTMLDivElement) => {
     this.container = container;
   };
@@ -216,7 +400,18 @@ export default class X6_Flow extends React.Component {
     return (
       <WorkspaceWrapper className="resizing-app">
         <ToolboxWrapper>
-          <ToolBox />
+          <ToolBox
+            onCopy={this.onCopy}
+            onPaste={this.onPaste}
+            onRedo={this.onRedo}
+            onUndo={this.onUndo}
+            onGraphCenter={this.onGraphCenter}
+            onContentCenter={this.onContentCenter}
+            onToFront={this.onToFront}
+            onToBack={this.onToBack}
+            redoDisable={!this.state.canRedo}
+            undoDisable={!this.state.canUndo}
+          />
         </ToolboxWrapper>
         <StencilWrapper ref={this.refStencil} />
         <CanvasWrapper ref={this.refContainer} />
