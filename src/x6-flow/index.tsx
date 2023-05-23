@@ -21,7 +21,7 @@ const commonAttrs = {
   },
 };
 
-interface Props {}
+interface Props { }
 
 interface State {
   canUndo: boolean;
@@ -47,15 +47,15 @@ export default class X6_Flow extends React.Component<Props, State> {
     restrict?: boolean;
     preserveAspectRatio?: boolean;
   } = {
-    enabled: true,
-    minWidth: 1,
-    maxWidth: 200,
-    minHeight: 1,
-    maxHeight: 150,
-    orthogonal: false,
-    restrict: false,
-    preserveAspectRatio: false,
-  };
+      enabled: true,
+      minWidth: 1,
+      maxWidth: 200,
+      minHeight: 1,
+      maxHeight: 150,
+      orthogonal: false,
+      restrict: false,
+      preserveAspectRatio: false,
+    };
 
   private rotatingOptions: {
     enabled: true;
@@ -77,6 +77,14 @@ export default class X6_Flow extends React.Component<Props, State> {
       container: this.container,
       background: {
         color: "#F2F7FA",
+      },
+      mousewheel: {
+        enabled: true,
+        modifiers: ["ctrl", "meta"],
+      },
+      scaling: {
+        min: 0.05, // 默认值为 0.01
+        max: 12, // 默认值为 16
       },
     });
     this.graph = graph;
@@ -363,6 +371,14 @@ export default class X6_Flow extends React.Component<Props, State> {
       return;
     }
     this.graph.centerContent();
+    this.graph.zoomToFit({
+      padding: {
+        left: 20,
+        top: 20,
+        right: 20,
+        bottom: 20,
+      }
+    });
   };
   onToBack = () => {
     if (this.graph == null) {
@@ -388,6 +404,40 @@ export default class X6_Flow extends React.Component<Props, State> {
       message.info("请先选中节点再调整");
     }
   };
+
+  onZoomIn = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    const zoom = this.graph.zoom();
+    this.graph.zoomTo(zoom - 0.1);
+  }
+
+  onZoomOut = () => {
+    if (this.graph == null) {
+      message.error("发生错误");
+      return;
+    }
+    const zoom = this.graph.zoom();
+    this.graph.zoomTo(zoom + 0.1);
+  }
+
+
+  onDelete = () => {
+    if (this.graph == null) return;
+    const cells = this.graph.getSelectedCells();
+    cells.map((cell) => cell.remove());
+  }
+
+  onGroup = () => {
+
+  }
+
+  onUnGroup = () => {
+
+  }
+
   refContainer = (container: HTMLDivElement) => {
     this.container = container;
   };
@@ -409,8 +459,13 @@ export default class X6_Flow extends React.Component<Props, State> {
             onContentCenter={this.onContentCenter}
             onToFront={this.onToFront}
             onToBack={this.onToBack}
+            onZoomOut={this.onZoomOut}
+            onZoomIn={this.onZoomIn}
+            onDelete={this.onDelete}
             redoDisable={!this.state.canRedo}
             undoDisable={!this.state.canUndo}
+            onGroup={this.onGroup}
+            onUnGroup={this.onUnGroup}
           />
         </ToolboxWrapper>
         <StencilWrapper ref={this.refStencil} />

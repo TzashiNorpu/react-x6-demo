@@ -12,11 +12,12 @@ import {
   Notepad,
   Redo,
   Undo,
+  Ungroup,
   UploadPicture,
   ZoomIn,
   ZoomOut,
 } from "@icon-park/react";
-import { Divider, Tooltip } from "antd";
+import { Tooltip } from "antd";
 export const ToolBox = ({
   onCopy,
   onPaste,
@@ -26,6 +27,11 @@ export const ToolBox = ({
   onContentCenter,
   onToFront,
   onToBack,
+  onZoomIn,
+  onZoomOut,
+  onDelete,
+  onGroup,
+  onUnGroup,
   undoDisable,
   redoDisable,
 }: {
@@ -37,10 +43,15 @@ export const ToolBox = ({
   onContentCenter: () => void;
   onToFront: () => void;
   onToBack: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onDelete: () => void;
+  onGroup: () => void;
+  onUnGroup: () => void;
   undoDisable: boolean;
   redoDisable: boolean;
 }) => {
-  const iconSize = 30;
+  const iconSize = 25;
   const theme = "outline";
   const fill = "#333";
   const strokeWidth = 3;
@@ -189,12 +200,12 @@ export const ToolBox = ({
         </Command>
       </Tooltip>
       <Separator />
-      <Tooltip key="multiSelect" title="组合">
+      <Tooltip key="group" title="组合">
         <Command
-          data-command="multiSelect"
+          data-command="group"
           onClick={(e) => {
             e.stopPropagation();
-            onToBack();
+            onGroup();
           }}
         >
           <Group
@@ -206,11 +217,25 @@ export const ToolBox = ({
           />
         </Command>
       </Tooltip>
+      <Tooltip key="ungroup" title="取消组合">
+        <Command
+          data-command="ungroup"
+          onClick={(e) => {
+            e.stopPropagation();
+            onUnGroup();
+          }}
+        >
+          <Ungroup theme={theme}
+            size={iconSize}
+            fill={fill} />
+        </Command>
+      </Tooltip>
       <Tooltip key="zoomIn" title="缩小">
         <Command
           data-command="zoomIn"
           onClick={(e) => {
             e.stopPropagation();
+            onZoomIn();
           }}
         >
           <ZoomOut
@@ -227,6 +252,7 @@ export const ToolBox = ({
           data-command="zoomOut"
           onClick={(e) => {
             e.stopPropagation();
+            onZoomOut();
           }}
         >
           <ZoomIn
@@ -243,6 +269,7 @@ export const ToolBox = ({
           data-command="delete"
           onClick={(e) => {
             e.stopPropagation();
+            onDelete();
           }}
         >
           <Delete
