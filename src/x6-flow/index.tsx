@@ -1,5 +1,5 @@
 import React from "react";
-import { Graph } from "@antv/x6";
+import { Cell, Dom, Graph } from "@antv/x6";
 import { Snapline } from "@antv/x6-plugin-snapline";
 import { Stencil } from "@antv/x6-plugin-stencil";
 import styled from "@emotion/styled";
@@ -21,7 +21,7 @@ const commonAttrs = {
   },
 };
 
-interface Props { }
+interface Props {}
 
 interface State {
   canUndo: boolean;
@@ -32,7 +32,8 @@ export default class X6_Flow extends React.Component<Props, State> {
   private container: HTMLDivElement | null = null;
   private stencilContainer: HTMLDivElement | null = null;
   private graph: Graph | null = null;
-
+  private embedPadding = 10;
+  private ctrlPressed = false;
   private copyOptions = {
     offset: 10,
     useLocalStorage: true,
@@ -47,15 +48,15 @@ export default class X6_Flow extends React.Component<Props, State> {
     restrict?: boolean;
     preserveAspectRatio?: boolean;
   } = {
-      enabled: true,
-      minWidth: 1,
-      maxWidth: 200,
-      minHeight: 1,
-      maxHeight: 150,
-      orthogonal: false,
-      restrict: false,
-      preserveAspectRatio: false,
-    };
+    enabled: true,
+    minWidth: 1,
+    maxWidth: 200,
+    minHeight: 1,
+    maxHeight: 150,
+    orthogonal: false,
+    restrict: false,
+    preserveAspectRatio: false,
+  };
 
   private rotatingOptions: {
     enabled: true;
@@ -66,6 +67,15 @@ export default class X6_Flow extends React.Component<Props, State> {
     canRedo: false,
     canUndo: false,
   };
+
+  private padding = {
+    left: 20,
+    top: 20,
+    right: 20,
+    bottom: 20,
+  };
+
+  private count = 0;
 
   componentDidMount() {
     if (this.container == null) {
@@ -86,6 +96,22 @@ export default class X6_Flow extends React.Component<Props, State> {
         min: 0.05, // 默认值为 0.01
         max: 12, // 默认值为 16
       },
+      embedding: {
+        enabled: true,
+        // findParent({ node }) {
+        //   const bbox = node.getBBox();
+        //   return this.getNodes().filter((item) => {
+        //     const data = item.getData<{ parent: boolean }>();
+        //     if (data && data.parent) {
+        //       const targetBBox = item.getBBox();
+        //       const tt = bbox.isIntersectWithRect(targetBBox);
+        //       console.log("find", tt);
+        //       return tt;
+        //     }
+        //     return false;
+        //   });
+        // },
+      },
     });
     this.graph = graph;
 
@@ -101,13 +127,14 @@ export default class X6_Flow extends React.Component<Props, State> {
         rubberband: true,
         movable: true,
         showNodeSelectionBox: true,
+        showEdgeSelectionBox: true,
       })
     );
 
     this.graph.use(
       new Clipboard({
         enabled: true,
-        useLocalStorage: true,
+        // useLocalStorage: true,
       })
     );
     this.graph.use(
@@ -157,49 +184,103 @@ export default class X6_Flow extends React.Component<Props, State> {
       });
     });
 
-    const source = this.graph.addNode({
-      x: 130,
-      y: 30,
-      width: 100,
-      height: 40,
-      label: "Hello",
-      attrs: {
-        body: {
-          stroke: "#8f8f8f",
-          strokeWidth: 1,
-          fill: "#fff",
-          rx: 6,
-          ry: 6,
+    this.graph.on("node:change:parent", ({ node }) => {
+      console.log("---");
+      node.attr({
+        label: {
+          text: `Child\n(embed)-${this.count++}`,
         },
-      },
+      });
     });
 
-    const target = this.graph.addNode({
-      x: 320,
-      y: 240,
-      width: 100,
-      height: 40,
-      label: "World",
-      attrs: {
-        body: {
-          stroke: "#8f8f8f",
-          strokeWidth: 1,
-          fill: "#fff",
-          rx: 6,
-          ry: 6,
-        },
-      },
+    graph.on("node:embedding", ({ e }: { e: Dom.MouseMoveEvent }) => {
+      this.ctrlPressed = e.metaKey || e.ctrlKey;
     });
 
-    this.graph.addEdge({
-      source,
-      target,
-      attrs: {
-        line: {
-          stroke: "#8f8f8f",
-          strokeWidth: 1,
-        },
-      },
+    graph.on("node:embedded", () => {
+      this.ctrlPressed = false;
+    });
+
+    graph.on("node:change:size", ({ node, options }) => {
+      if (options.skipParentHandler) {
+        return;
+      }
+
+      const children = node.getChildren();
+      if (children && children.length) {
+        node.prop("originSize", node.getSize());
+      }
+    });
+
+    graph.on("node:change:position", ({ node, options }) => {
+      if (options.skipParentHandler || this.ctrlPressed) {
+        return;
+      }
+
+      const children = node.getChildren();
+      if (children && children.length) {
+        node.prop("originPosition", node.getPosition());
+      }
+
+      const parent = node.getParent();
+      if (parent && parent.isNode()) {
+        let originSize = parent.prop("originSize");
+        if (originSize == null) {
+          originSize = parent.getSize();
+          parent.prop("originSize", originSize);
+        }
+
+        let originPosition = parent.prop("originPosition");
+        if (originPosition == null) {
+          originPosition = parent.getPosition();
+          parent.prop("originPosition", originPosition);
+        }
+
+        let x = originPosition.x;
+        let y = originPosition.y;
+        let cornerX = originPosition.x + originSize.width;
+        let cornerY = originPosition.y + originSize.height;
+        let hasChange = false;
+
+        const children = parent.getChildren();
+        if (children) {
+          children.forEach((child) => {
+            const bbox = child.getBBox().inflate(this.embedPadding);
+            const corner = bbox.getCorner();
+
+            if (bbox.x < x) {
+              x = bbox.x;
+              hasChange = true;
+            }
+
+            if (bbox.y < y) {
+              y = bbox.y;
+              hasChange = true;
+            }
+
+            if (corner.x > cornerX) {
+              cornerX = corner.x;
+              hasChange = true;
+            }
+
+            if (corner.y > cornerY) {
+              cornerY = corner.y;
+              hasChange = true;
+            }
+          });
+        }
+        if (hasChange) {
+          parent.prop(
+            {
+              position: { x, y },
+              size: { width: cornerX - x, height: cornerY - y },
+            },
+            // Note that we also pass a flag so that we know we shouldn't
+            // adjust the `originPosition` and `originSize` in our handlers.
+            { skipParentHandler: true }
+          );
+        }
+      }
     });
 
     this.graph.centerContent();
@@ -209,6 +290,11 @@ export default class X6_Flow extends React.Component<Props, State> {
       if (this.graph == null) return;
       const cells = this.graph.getSelectedCells();
       if (cells.length) {
+        cells.forEach((cell) => {
+          const descendants = cell.getDescendants();
+          console.log("des", descendants);
+          cells.push(...descendants);
+        });
         this.graph.copy(cells);
       }
       return false;
@@ -254,6 +340,11 @@ export default class X6_Flow extends React.Component<Props, State> {
         },
         {
           name: "group2",
+          title: "Group",
+          collapsable: false,
+        },
+        {
+          name: "group3",
           title: "Group",
           collapsable: false,
         },
@@ -305,8 +396,49 @@ export default class X6_Flow extends React.Component<Props, State> {
       label: "path",
     });
 
+    Graph.registerNode(
+      "custom-node",
+      {
+        inherit: "rect",
+        width: 100,
+        height: 40,
+        attrs: {
+          body: {
+            stroke: "#8f8f8f",
+            strokeWidth: 1,
+            fill: "#fff",
+            rx: 6,
+            ry: 6,
+          },
+        },
+      },
+      true
+    );
+
+    const child = graph.createNode({
+      shape: "custom-node",
+      x: 40,
+      y: 160,
+      width: 80,
+      height: 40,
+      label: "Child\n(unembed)",
+    });
+
+    const parent = graph.createNode({
+      shape: "custom-node",
+      x: 200,
+      y: 80,
+      width: 100,
+      height: 60,
+      label: "Parent",
+      data: {
+        parent: true,
+      },
+    });
+
     stencil.load([n1, n2], "group1");
     stencil.load([n3, n4], "group2");
+    stencil.load([child, parent], "group3");
     this.graph = graph;
   }
   // copy
@@ -372,12 +504,7 @@ export default class X6_Flow extends React.Component<Props, State> {
     }
     this.graph.centerContent();
     this.graph.zoomToFit({
-      padding: {
-        left: 20,
-        top: 20,
-        right: 20,
-        bottom: 20,
-      }
+      padding: this.padding,
     });
   };
   onToBack = () => {
@@ -412,7 +539,7 @@ export default class X6_Flow extends React.Component<Props, State> {
     }
     const zoom = this.graph.zoom();
     this.graph.zoomTo(zoom - 0.1);
-  }
+  };
 
   onZoomOut = () => {
     if (this.graph == null) {
@@ -421,22 +548,50 @@ export default class X6_Flow extends React.Component<Props, State> {
     }
     const zoom = this.graph.zoom();
     this.graph.zoomTo(zoom + 0.1);
-  }
-
+  };
 
   onDelete = () => {
     if (this.graph == null) return;
     const cells = this.graph.getSelectedCells();
     cells.map((cell) => cell.remove());
-  }
+  };
 
   onGroup = () => {
-
-  }
+    if (this.graph == null) return;
+    const parent = this.graph.addNode({
+      shape: "rect",
+      zIndex: -100,
+      x: 40,
+      y: 40,
+      width: 360,
+      height: 160,
+    });
+    const cells = this.graph.getSelectedCells();
+    cells.forEach((cell) => {
+      parent.addChild(cell);
+    });
+    parent.fit({
+      padding: this.padding,
+    });
+  };
 
   onUnGroup = () => {
+    if (this.graph == null) return;
+    const cells = this.graph.getSelectedCells();
+    const copy: Cell[] = [];
+    cells.forEach((cell) => {
+      console.log("cell", cell);
+      cell.getChildren()?.forEach((x) => {
+        console.log("child", x);
+        cell.removeChild(x);
+        copy.push(x);
+      });
+      // this.graph?.removeCell(cell);
+    });
 
-  }
+    console.log("copy", copy);
+    copy.forEach((child) => this.graph?.addCell(child));
+  };
 
   refContainer = (container: HTMLDivElement) => {
     this.container = container;
