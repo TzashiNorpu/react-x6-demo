@@ -17,8 +17,9 @@ import {
   ZoomIn,
   ZoomOut,
 } from "@icon-park/react";
-import { Tooltip } from "antd";
+import { Tooltip, Upload, UploadProps } from "antd";
 export const ToolBox = ({
+  uploadProps,
   onCopy,
   onPaste,
   onRedo,
@@ -34,7 +35,11 @@ export const ToolBox = ({
   onUnGroup,
   undoDisable,
   redoDisable,
-}: {
+  onExportJPEG,
+  onExportJson,
+}: // onImportJson,
+{
+  uploadProps: UploadProps;
   onCopy: () => void;
   onPaste: () => void;
   onRedo: () => void;
@@ -50,6 +55,9 @@ export const ToolBox = ({
   onUnGroup: () => void;
   undoDisable: boolean;
   redoDisable: boolean;
+  onExportJPEG: () => void;
+  onExportJson: () => void;
+  // onImportJson: () => void;
 }) => {
   const iconSize = 25;
   const theme = "outline";
@@ -95,7 +103,7 @@ export const ToolBox = ({
         </Command>
       </Tooltip>
       <Tooltip key="redo" title="恢复">
-        <Command
+        <CommandBtn
           data-command="redo"
           disabled={redoDisable}
           onClick={(e) => {
@@ -110,10 +118,10 @@ export const ToolBox = ({
             strokeWidth={strokeWidth}
             strokeLinejoin={strokeLinejoin}
           />
-        </Command>
+        </CommandBtn>
       </Tooltip>
       <Tooltip key="undo" title="撤销">
-        <Command
+        <CommandBtn
           data-command="undo"
           disabled={undoDisable}
           onClick={(e) => {
@@ -128,7 +136,7 @@ export const ToolBox = ({
             strokeWidth={strokeWidth}
             strokeLinejoin={strokeLinejoin}
           />
-        </Command>
+        </CommandBtn>
       </Tooltip>
       <Separator />
       <Tooltip key="autoFit" title="内容居中">
@@ -225,9 +233,7 @@ export const ToolBox = ({
             onUnGroup();
           }}
         >
-          <Ungroup theme={theme}
-            size={iconSize}
-            fill={fill} />
+          <Ungroup theme={theme} size={iconSize} fill={fill} />
         </Command>
       </Tooltip>
       <Tooltip key="zoomIn" title="缩小">
@@ -287,6 +293,7 @@ export const ToolBox = ({
           data-command="export"
           onClick={(e) => {
             e.stopPropagation();
+            onExportJson();
           }}
         >
           <ExternalTransmission
@@ -303,22 +310,26 @@ export const ToolBox = ({
           data-command="import"
           onClick={(e) => {
             e.stopPropagation();
+            // onImportJson();
           }}
         >
-          <InternalTransmission
-            theme={theme}
-            size={iconSize}
-            fill={fill}
-            strokeWidth={strokeWidth}
-            strokeLinejoin={strokeLinejoin}
-          />
+          <Upload {...uploadProps}>
+            <InternalTransmission
+              theme={theme}
+              size={iconSize}
+              fill={fill}
+              strokeWidth={strokeWidth}
+              strokeLinejoin={strokeLinejoin}
+            />
+          </Upload>
         </Command>
       </Tooltip>
-      <Tooltip key="export-image" title="导出图片">
+      <Tooltip key="export-jpeg" title="导出图片">
         <Command
-          data-command="export-image"
+          data-command="export-jpeg"
           onClick={(e) => {
             e.stopPropagation();
+            onExportJPEG();
           }}
         >
           <UploadPicture
@@ -336,10 +347,28 @@ export const ToolBox = ({
 
 const Container = styled(Tooltip)``;
 
-const Command = styled.button`
+const Command = styled.span`
   display: inline-block;
   border: 1px solid rgba(2, 2, 2, 0);
   border-radius: 2px;
+  height: 30px;
+  span {
+    margin: 0 6px;
+  }
+  &:nth-of-type(1) {
+    margin-left: 6px;
+  }
+  &:hover {
+    border: 1px solid #e9e9e9;
+    cursor: pointer;
+  }
+`;
+
+const CommandBtn = styled.button`
+  display: inline-block;
+  border: 1px solid rgba(2, 2, 2, 0);
+  border-radius: 2px;
+  height: 30px;
   span {
     margin: 0 6px;
   }
@@ -355,7 +384,7 @@ const Command = styled.button`
 const Separator = styled.span`
   margin: 6px;
   display: inline-block;
-  height: 30px;
+  height: 20px;
   border-left: 2px solid #e9e9e9;
   vertical-align: bottom;
 `;

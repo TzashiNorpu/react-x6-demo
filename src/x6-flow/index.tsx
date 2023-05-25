@@ -1,5 +1,5 @@
 import React from "react";
-import { Cell, Dom, Graph } from "@antv/x6";
+import { Dom, Graph, Model } from "@antv/x6";
 import { Snapline } from "@antv/x6-plugin-snapline";
 import { Stencil } from "@antv/x6-plugin-stencil";
 import styled from "@emotion/styled";
@@ -9,10 +9,11 @@ import { Selection } from "@antv/x6-plugin-selection";
 import { Keyboard } from "@antv/x6-plugin-keyboard";
 import { History } from "@antv/x6-plugin-history";
 import { Scroller } from "@antv/x6-plugin-scroller";
-
+import { Export } from "@antv/x6-plugin-export";
+import { saveAs } from "file-saver";
 import "./index.less";
 import { ToolBox } from "./toolbox";
-import { message } from "antd";
+import { UploadProps, message } from "antd";
 const commonAttrs = {
   body: {
     fill: "#fff",
@@ -20,13 +21,30 @@ const commonAttrs = {
     strokeWidth: 1,
   },
 };
-
-interface Props {}
-
 interface State {
   canUndo: boolean;
   canRedo: boolean;
 }
+
+interface Props {}
+
+type ConnectState = {
+  allowBlank: boolean;
+  allowMulti: boolean;
+  allowLoop: boolean;
+  allowNode: boolean;
+  allowEdge: boolean;
+  allowPort: boolean;
+};
+
+const connectState: ConnectState = {
+  allowBlank: false,
+  allowMulti: true,
+  allowLoop: true,
+  allowNode: true,
+  allowEdge: true,
+  allowPort: true,
+};
 
 export default class X6_Flow extends React.Component<Props, State> {
   private container: HTMLDivElement | null = null;
@@ -88,6 +106,32 @@ export default class X6_Flow extends React.Component<Props, State> {
       background: {
         color: "#F2F7FA",
       },
+      connecting: {
+        ...connectState,
+        createEdge() {
+          return this.createEdge({
+            attrs: {
+              line: {
+                stroke: "#8f8f8f",
+                strokeWidth: 1,
+              },
+            },
+            tools: [
+              {
+                name: "edge-editor",
+                args: {
+                  attrs: {
+                    backgroundColor: "#fff",
+                  },
+                },
+              },
+            ],
+          });
+        },
+        allowNode(args) {
+          return true;
+        },
+      },
       mousewheel: {
         enabled: true,
         modifiers: ["ctrl", "meta"],
@@ -131,6 +175,8 @@ export default class X6_Flow extends React.Component<Props, State> {
       })
     );
 
+    graph.use(new Export());
+
     this.graph.use(
       new Clipboard({
         enabled: true,
@@ -169,7 +215,7 @@ export default class X6_Flow extends React.Component<Props, State> {
         enabled: true,
         pageVisible: true,
         pageBreak: true,
-        pannable: true,
+        // pannable: true,
       })
     );
 
@@ -195,6 +241,9 @@ export default class X6_Flow extends React.Component<Props, State> {
 
     graph.on("node:embedding", ({ e }: { e: Dom.MouseMoveEvent }) => {
       this.ctrlPressed = e.metaKey || e.ctrlKey;
+    });
+    graph.on("node:mouseenter", ({ e }: { e: Dom.MouseMoveEvent }) => {
+      console.log("e", e);
     });
 
     graph.on("node:embedded", () => {
@@ -295,6 +344,7 @@ export default class X6_Flow extends React.Component<Props, State> {
           console.log("des", descendants);
           cells.push(...descendants);
         });
+        this.graph.select(cells);
         this.graph.copy(cells);
       }
       return false;
@@ -331,6 +381,29 @@ export default class X6_Flow extends React.Component<Props, State> {
       placeholder: "Search by shape name",
       notFoundText: "Not Found",
       collapsable: true,
+      getDragNode(node) {
+        // 这里返回一个新的节点作为拖拽节点
+        const clone = node.clone();
+        clone.addPorts([
+          {
+            id: "port1",
+            group: "top",
+          },
+          {
+            id: "port2",
+            group: "right",
+          },
+          {
+            id: "port3",
+            group: "bottom",
+          },
+          {
+            id: "port4",
+            group: "left",
+          },
+        ]);
+        return clone;
+      },
       stencilGraphWidth: 200,
       stencilGraphHeight: 100,
       groups: [
@@ -362,6 +435,78 @@ export default class X6_Flow extends React.Component<Props, State> {
       height: 40,
       label: "rect",
       attrs: commonAttrs,
+      tools: [
+        {
+          name: "node-editor",
+          args: {
+            attrs: {
+              backgroundColor: "#EFF4FF",
+            },
+          },
+        },
+      ],
+      ports: {
+        groups: {
+          top: {
+            position: "top",
+            attrs: {
+              circle: {
+                magnet: true,
+                stroke: "#8f8f8f",
+                r: 5,
+              },
+            },
+          },
+          right: {
+            position: "right",
+            attrs: {
+              circle: {
+                magnet: true,
+                stroke: "#8f8f8f",
+                r: 5,
+              },
+            },
+          },
+          bottom: {
+            position: "bottom",
+            attrs: {
+              circle: {
+                magnet: true,
+                stroke: "#8f8f8f",
+                r: 5,
+              },
+            },
+          },
+          left: {
+            position: "left",
+            attrs: {
+              circle: {
+                magnet: true,
+                stroke: "#8f8f8f",
+                r: 5,
+              },
+            },
+          },
+        },
+        // items: [
+        //   {
+        //     id: "port1",
+        //     group: "top",
+        //   },
+        //   {
+        //     id: "port2",
+        //     group: "right",
+        //   },
+        //   {
+        //     id: "port3",
+        //     group: "bottom",
+        //   },
+        //   {
+        //     id: "port4",
+        //     group: "left",
+        //   },
+        // ],
+      },
     });
 
     const n2 = this.graph.createNode({
@@ -372,6 +517,16 @@ export default class X6_Flow extends React.Component<Props, State> {
       height: 40,
       label: "circle",
       attrs: commonAttrs,
+      tools: [
+        {
+          name: "node-editor",
+          args: {
+            attrs: {
+              backgroundColor: "#EFF4FF",
+            },
+          },
+        },
+      ],
     });
 
     const n3 = this.graph.createNode({
@@ -578,19 +733,62 @@ export default class X6_Flow extends React.Component<Props, State> {
   onUnGroup = () => {
     if (this.graph == null) return;
     const cells = this.graph.getSelectedCells();
-    const copy: Cell[] = [];
     cells.forEach((cell) => {
-      console.log("cell", cell);
-      cell.getChildren()?.forEach((x) => {
-        console.log("child", x);
-        cell.removeChild(x);
-        copy.push(x);
+      const descendants = cell.getDescendants();
+      descendants.forEach((descendant) => {
+        descendant.removeFromParent();
       });
-      // this.graph?.removeCell(cell);
+      this.graph?.copy(descendants);
+      this.graph?.paste(this.copyOptions);
     });
+  };
 
-    console.log("copy", copy);
-    copy.forEach((child) => this.graph?.addCell(child));
+  jpegOption: Export.ToImageOptions = {
+    width: 1000,
+    height: 1000,
+    padding: 10,
+    quality: 1,
+  };
+
+  private onExportJPEG = () => {
+    this.graph?.exportJPEG("demo.jpeg", this.jpegOption);
+  };
+
+  jsonOptions: Model.ToJSONOptions = {};
+
+  private onExportJson = () => {
+    const fileData = JSON.stringify(this.graph?.toJSON(), null, 2);
+    const file = new File([fileData], "demo.json", {
+      type: "text/plain;charset=utf-8",
+    });
+    saveAs(file);
+  };
+
+  uploadProps: UploadProps = {
+    name: "file",
+    beforeUpload: (file) => {
+      file.text().then((res) => {
+        if (this.graph == null) {
+          message.error("发生错误");
+        }
+        this.graph?.fromJSON(JSON.parse(res));
+      });
+    },
+    customRequest: () => {
+      return true;
+    },
+    showUploadList: false,
+    multiple: false,
+    onChange(info) {
+      if (info.file.status !== "uploading") {
+        console.log(info.file, info.fileList);
+      }
+      if (info.file.status === "done") {
+        message.success(`${info.file.name} file uploaded successfully`);
+      } else if (info.file.status === "error") {
+        message.error(`${info.file.name} file upload failed.`);
+      }
+    },
   };
 
   refContainer = (container: HTMLDivElement) => {
@@ -603,9 +801,10 @@ export default class X6_Flow extends React.Component<Props, State> {
 
   render() {
     return (
-      <WorkspaceWrapper className="resizing-app">
+      <WorkspaceWrapper className="resizing-app selection-app">
         <ToolboxWrapper>
           <ToolBox
+            uploadProps={this.uploadProps}
             onCopy={this.onCopy}
             onPaste={this.onPaste}
             onRedo={this.onRedo}
@@ -621,10 +820,14 @@ export default class X6_Flow extends React.Component<Props, State> {
             undoDisable={!this.state.canUndo}
             onGroup={this.onGroup}
             onUnGroup={this.onUnGroup}
+            onExportJPEG={this.onExportJPEG}
+            onExportJson={this.onExportJson}
+            // onImportJson={this.onImportJson}
           />
         </ToolboxWrapper>
         <StencilWrapper ref={this.refStencil} />
-        <CanvasWrapper ref={this.refContainer} />
+
+        <CanvasWrapper className="app-content" ref={this.refContainer} />
       </WorkspaceWrapper>
     );
   }

@@ -24,6 +24,7 @@
     "@antv/x6-plugin-transform": "^2.1.7",
     "@icon-park/react": "^1.4.2",
     "antd": "^5.4.6",
+    "file-saver": "^2.0.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "styled": "^1.0.0"
@@ -32,6 +33,7 @@
     "@emotion/css": "^11.10.8",
     "@emotion/react": "^11.10.8",
     "@emotion/styled": "^11.10.8",
+    "@types/file-saver": "^2.0.5",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
