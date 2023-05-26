@@ -369,6 +369,7 @@ const CommandBtn = styled.button`
   border: 1px solid rgba(2, 2, 2, 0);
   border-radius: 2px;
   height: 30px;
+  background-color: #fff;
   span {
     margin: 0 6px;
   }

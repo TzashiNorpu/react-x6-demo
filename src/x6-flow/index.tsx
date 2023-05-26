@@ -1,5 +1,5 @@
-import React from "react";
-import { Dom, Graph, Model } from "@antv/x6";
+import React, { useState } from "react";
+import { Dom, Graph, Model, Node } from "@antv/x6";
 import { Snapline } from "@antv/x6-plugin-snapline";
 import { Stencil } from "@antv/x6-plugin-stencil";
 import styled from "@emotion/styled";
@@ -14,14 +14,32 @@ import { saveAs } from "file-saver";
 import "./index.less";
 import { ToolBox } from "./toolbox";
 import { UploadProps, message } from "antd";
+import { GraphState } from "./side/graph-setting";
+import { SettingPanel } from "./side";
+import { NodeState } from "./side/node-setting";
+
+const grapState: GraphState = {
+  visible: true,
+  type: "dot",
+  size: 10,
+  color: "#aaaaaa",
+  thickness: 1,
+  colorSecond: "#888888",
+  thicknessSecond: 3,
+  factor: 4,
+};
+
+const nodeState: NodeState = {
+  fill: "#ffffff",
+  stroke: "#8f8f8f",
+  strokeWidth: 1,
+};
+
 const commonAttrs = {
-  body: {
-    fill: "#fff",
-    stroke: "#8f8f8f",
-    strokeWidth: 1,
-  },
+  body: nodeState,
 };
 interface State {
+  settingType: string;
   canUndo: boolean;
   canRedo: boolean;
 }
@@ -45,6 +63,8 @@ const connectState: ConnectState = {
   allowEdge: true,
   allowPort: true,
 };
+
+// const [settingType, setSettingType] = useState("");
 
 export default class X6_Flow extends React.Component<Props, State> {
   private container: HTMLDivElement | null = null;
@@ -82,6 +102,7 @@ export default class X6_Flow extends React.Component<Props, State> {
   } = { enabled: true, grid: 10 };
 
   state: State = {
+    settingType: "",
     canRedo: false,
     canUndo: false,
   };
@@ -106,6 +127,7 @@ export default class X6_Flow extends React.Component<Props, State> {
       background: {
         color: "#F2F7FA",
       },
+      grid: grapState,
       connecting: {
         ...connectState,
         createEdge() {
@@ -127,6 +149,19 @@ export default class X6_Flow extends React.Component<Props, State> {
               },
             ],
           });
+        },
+        validateConnection({ targetCell }) {
+          if (targetCell?.isNode()) {
+            const ports = (targetCell as Node).getPorts();
+            ports.forEach((port) => {
+              (targetCell as Node).portProp(
+                port.id!,
+                "attrs/circle/display",
+                "inline"
+              );
+            });
+          }
+          return true;
         },
         allowNode(args) {
           return true;
@@ -170,8 +205,8 @@ export default class X6_Flow extends React.Component<Props, State> {
         multiple: true,
         rubberband: true,
         movable: true,
-        showNodeSelectionBox: true,
-        showEdgeSelectionBox: true,
+        // showNodeSelectionBox: true,
+        // showEdgeSelectionBox: true,
       })
     );
 
@@ -225,13 +260,13 @@ export default class X6_Flow extends React.Component<Props, State> {
         return;
       }
       this.setState({
+        ...this.state,
         canRedo: this.graph.canRedo(),
         canUndo: this.graph.canUndo(),
       });
     });
 
     this.graph.on("node:change:parent", ({ node }) => {
-      console.log("---");
       node.attr({
         label: {
           text: `Child\n(embed)-${this.count++}`,
@@ -239,11 +274,43 @@ export default class X6_Flow extends React.Component<Props, State> {
       });
     });
 
+    graph.on("node:click", () => {
+      this.setState({
+        ...this.state,
+        settingType: "Node",
+      });
+    });
+
+    graph.on("edge:click", () => {
+      this.setState({
+        ...this.state,
+        settingType: "Edge",
+      });
+    });
+
     graph.on("node:embedding", ({ e }: { e: Dom.MouseMoveEvent }) => {
       this.ctrlPressed = e.metaKey || e.ctrlKey;
     });
-    graph.on("node:mouseenter", ({ e }: { e: Dom.MouseMoveEvent }) => {
-      console.log("e", e);
+
+    graph.on("node:mouseenter", ({ e, node }) => {
+      const ports = node.getPorts();
+      ports.forEach((port) => {
+        node.portProp(port.id!, "attrs/circle/display", "inline");
+      });
+    });
+
+    graph.on("blank:click", () => {
+      this.setState({
+        ...this.state,
+        settingType: "Graph",
+      });
+    });
+
+    graph.on("node:mouseleave", ({ node }) => {
+      const ports = node.getPorts();
+      ports.forEach((port) => {
+        node.portProp(port.id!, "attrs/circle/display", "none");
+      });
     });
 
     graph.on("node:embedded", () => {
@@ -332,7 +399,7 @@ export default class X6_Flow extends React.Component<Props, State> {
       }
     });
 
-    this.graph.centerContent();
+    this.graph.center();
 
     // ctrl+c ctrl+v
     this.graph.bindKey("ctrl+c", () => {
@@ -402,6 +469,9 @@ export default class X6_Flow extends React.Component<Props, State> {
             group: "left",
           },
         ]);
+        clone.getPorts().forEach((port) => {
+          clone.portProp(port.id!, "attrs/circle/display", "none");
+        });
         return clone;
       },
       stencilGraphWidth: 200,
@@ -410,16 +480,6 @@ export default class X6_Flow extends React.Component<Props, State> {
         {
           name: "group1",
           title: "Group(Collapsable)",
-        },
-        {
-          name: "group2",
-          title: "Group",
-          collapsable: false,
-        },
-        {
-          name: "group3",
-          title: "Group",
-          collapsable: false,
         },
       ],
     });
@@ -488,24 +548,6 @@ export default class X6_Flow extends React.Component<Props, State> {
             },
           },
         },
-        // items: [
-        //   {
-        //     id: "port1",
-        //     group: "top",
-        //   },
-        //   {
-        //     id: "port2",
-        //     group: "right",
-        //   },
-        //   {
-        //     id: "port3",
-        //     group: "bottom",
-        //   },
-        //   {
-        //     id: "port4",
-        //     group: "left",
-        //   },
-        // ],
       },
     });
 
@@ -527,73 +569,53 @@ export default class X6_Flow extends React.Component<Props, State> {
           },
         },
       ],
-    });
-
-    const n3 = this.graph.createNode({
-      shape: "ellipse",
-      x: 280,
-      y: 40,
-      width: 80,
-      height: 40,
-      label: "ellipse",
-      attrs: commonAttrs,
-    });
-
-    const n4 = this.graph.createNode({
-      shape: "path",
-      x: 420,
-      y: 40,
-      width: 40,
-      height: 40,
-      // https://www.svgrepo.com/svg/13653/like
-      path: "M24.85,10.126c2.018-4.783,6.628-8.125,11.99-8.125c7.223,0,12.425,6.179,13.079,13.543c0,0,0.353,1.828-0.424,5.119c-1.058,4.482-3.545,8.464-6.898,11.503L24.85,48L7.402,32.165c-3.353-3.038-5.84-7.021-6.898-11.503c-0.777-3.291-0.424-5.119-0.424-5.119C0.734,8.179,5.936,2,13.159,2C18.522,2,22.832,5.343,24.85,10.126z",
-      attrs: commonAttrs,
-      label: "path",
-    });
-
-    Graph.registerNode(
-      "custom-node",
-      {
-        inherit: "rect",
-        width: 100,
-        height: 40,
-        attrs: {
-          body: {
-            stroke: "#8f8f8f",
-            strokeWidth: 1,
-            fill: "#fff",
-            rx: 6,
-            ry: 6,
+      ports: {
+        groups: {
+          top: {
+            position: "top",
+            attrs: {
+              circle: {
+                magnet: true,
+                stroke: "#8f8f8f",
+                r: 5,
+              },
+            },
+          },
+          right: {
+            position: "right",
+            attrs: {
+              circle: {
+                magnet: true,
+                stroke: "#8f8f8f",
+                r: 5,
+              },
+            },
+          },
+          bottom: {
+            position: "bottom",
+            attrs: {
+              circle: {
+                magnet: true,
+                stroke: "#8f8f8f",
+                r: 5,
+              },
+            },
+          },
+          left: {
+            position: "left",
+            attrs: {
+              circle: {
+                magnet: true,
+                stroke: "#8f8f8f",
+                r: 5,
+              },
+            },
           },
         },
-      },
-      true
-    );
-
-    const child = graph.createNode({
-      shape: "custom-node",
-      x: 40,
-      y: 160,
-      width: 80,
-      height: 40,
-      label: "Child\n(unembed)",
-    });
-
-    const parent = graph.createNode({
-      shape: "custom-node",
-      x: 200,
-      y: 80,
-      width: 100,
-      height: 60,
-      label: "Parent",
-      data: {
-        parent: true,
       },
     });
 
     stencil.load([n1, n2], "group1");
-    stencil.load([n3, n4], "group2");
-    stencil.load([child, parent], "group3");
     this.graph = graph;
   }
   // copy
@@ -775,6 +797,7 @@ export default class X6_Flow extends React.Component<Props, State> {
       });
     },
     customRequest: () => {
+      this.graph?.clearCells();
       return true;
     },
     showUploadList: false,
@@ -789,6 +812,14 @@ export default class X6_Flow extends React.Component<Props, State> {
         message.error(`${info.file.name} file upload failed.`);
       }
     },
+  };
+
+  onGridChanged = (options: any) => {
+    this.graph?.drawGrid(options);
+  };
+
+  onGridSizeChanged = (size: number) => {
+    this.graph?.setGridSize(size);
   };
 
   refContainer = (container: HTMLDivElement) => {
@@ -828,15 +859,29 @@ export default class X6_Flow extends React.Component<Props, State> {
         <StencilWrapper ref={this.refStencil} />
 
         <CanvasWrapper className="app-content" ref={this.refContainer} />
+        <SidebarWrapper>
+          <SettingPanel
+            type={this.state.settingType}
+            graphProps={{
+              onGridSizeChange: this.onGridSizeChanged,
+              onChange: this.onGridChanged,
+              state: grapState,
+            }}
+            nodeProps={{
+              state: nodeState,
+              onChange: () => {},
+              onGridSizeChange: () => {},
+            }}
+          />
+        </SidebarWrapper>
       </WorkspaceWrapper>
     );
   }
 }
-
 const WorkspaceWrapper = styled.div`
   display: grid;
   padding: 0;
-  grid-template-columns: 30rem 1fr 20rem;
+  grid-template-columns: 30rem 1fr 30rem;
   grid-template-rows: 6rem 1fr 5rem;
   grid-template-areas:
     "toolbox toolbox toolbox"
