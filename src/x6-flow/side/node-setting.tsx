@@ -1,7 +1,5 @@
 import { Input, Select, Slider, Card, Row, Col } from "antd";
-import { useState } from "react";
 export interface NodeSettingProps {
-  onGridSizeChange: (size: number) => void;
   onChange: (res: any) => void;
   state: NodeState;
 }
@@ -16,35 +14,28 @@ export interface NodeState {
 }
 
 export const NodeSettings = (props: NodeSettingProps) => {
-  const [state, setState] = useState(props.state);
 
   const onWidthChanged = (width: number) => {
-    setState({ ...state, width });
-    props.onChange(state.width);
+    props.onChange({ 'k': 'width', 'v': width });
   };
   const onHeightChanged = (height: number) => {
-    setState({ ...state, height });
-    props.onChange(state.height);
+    props.onChange({ 'k': 'height', 'v': height });
   };
 
   const onNodeColorChanged = (e: any) => {
-    setState({ ...state, fill: e.target.value });
-    props.onChange(state.fill);
+    props.onChange({ 'k': 'fill', 'v': e.target.value });
   };
 
   const onStrokeWidthChanged = (strokeWidth: number) => {
-    setState({ ...state, strokeWidth });
-    props.onChange(state.strokeWidth);
+    props.onChange({ 'k': 'strokeWidth', 'v': strokeWidth });
   };
 
   const onStrokeColorChanged = (e: any) => {
-    setState({ ...state, stroke: e.target.value });
-    props.onChange(state.stroke);
+    props.onChange({ 'k': 'stroke', 'v': e.target.value });
   };
 
-  const onStrokeTypeChanged = (strokeType: string) => {
-    setState({ ...state, strokeDasharray: strokeType });
-    props.onChange(state.strokeDasharray);
+  const onStrokeTypeChanged = (strokeDasharray: string) => {
+    props.onChange({ 'k': strokeDasharray, 'v': strokeDasharray });
   };
 
   return (
@@ -66,7 +57,7 @@ export const NodeSettings = (props: NodeSettingProps) => {
           />
         </Col>
         <Col span={1}>
-          <div className="slider-value">{state.width}</div>
+          <div className="slider-value">{props.state.width}</div>
         </Col>
       </Row>
       <Row align="middle">
@@ -81,7 +72,7 @@ export const NodeSettings = (props: NodeSettingProps) => {
           />
         </Col>
         <Col span={1}>
-          <div className="slider-value">{state.height}</div>
+          <div className="slider-value">{props.state.height}</div>
         </Col>
       </Row>
       <Row align="middle">
@@ -89,7 +80,7 @@ export const NodeSettings = (props: NodeSettingProps) => {
         <Col span={13}>
           <Input
             type="color"
-            value={state.fill}
+            value={props.state.fill}
             style={{ width: "100%" }}
             onChange={onNodeColorChanged}
           />
@@ -108,7 +99,7 @@ export const NodeSettings = (props: NodeSettingProps) => {
           />
         </Col>
         <Col span={1}>
-          <div className="slider-value">{state.strokeWidth}</div>
+          <div className="slider-value">{props.state.strokeWidth}</div>
         </Col>
       </Row>
 
@@ -117,7 +108,7 @@ export const NodeSettings = (props: NodeSettingProps) => {
         <Col span={13}>
           <Input
             type="color"
-            value={state.stroke}
+            value={props.state.stroke}
             style={{ width: "100%" }}
             onChange={onStrokeColorChanged}
           />
@@ -128,7 +119,7 @@ export const NodeSettings = (props: NodeSettingProps) => {
         <Col span={13}>
           <Select
             style={{ width: "100%" }}
-            value={state.strokeDasharray}
+            value={props.state.strokeDasharray}
             onChange={onStrokeTypeChanged}
           >
             <Select.Option value="">

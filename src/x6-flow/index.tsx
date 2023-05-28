@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Dom, Graph, Model, Node } from "@antv/x6";
+import { Color, Dom, Graph, Model, Node } from "@antv/x6";
 import { Snapline } from "@antv/x6-plugin-snapline";
 import { Stencil } from "@antv/x6-plugin-stencil";
 import styled from "@emotion/styled";
@@ -16,35 +16,26 @@ import { ToolBox } from "./toolbox";
 import { UploadProps, message } from "antd";
 import { GraphState } from "./side/graph-setting";
 import { SettingPanel } from "./side";
+import { nodeState } from './config/nodeState'
+import { gridState } from './config/gridState'
+import './stencil/app-node'
 import { NodeState } from "./side/node-setting";
 
-const grapState: GraphState = {
-  visible: true,
-  type: "dot",
-  size: 10,
-  color: "#aaaaaa",
-  thickness: 1,
-  colorSecond: "#888888",
-  thicknessSecond: 3,
-  factor: 4,
-};
-
-const nodeState: NodeState = {
-  fill: "#ffffff",
-  stroke: "#8f8f8f",
-  strokeWidth: 1,
-};
+let currNodeState: NodeState = {};
+let currNodes: Node[] = [];
 
 const commonAttrs = {
-  body: nodeState,
+  body: { ...nodeState },
 };
 interface State {
   settingType: string;
   canUndo: boolean;
   canRedo: boolean;
+  gridState: GraphState;
+  nodeState: NodeState
 }
 
-interface Props {}
+interface Props { }
 
 type ConnectState = {
   allowBlank: boolean;
@@ -64,7 +55,7 @@ const connectState: ConnectState = {
   allowPort: true,
 };
 
-// const [settingType, setSettingType] = useState("");
+
 
 export default class X6_Flow extends React.Component<Props, State> {
   private container: HTMLDivElement | null = null;
@@ -86,15 +77,15 @@ export default class X6_Flow extends React.Component<Props, State> {
     restrict?: boolean;
     preserveAspectRatio?: boolean;
   } = {
-    enabled: true,
-    minWidth: 1,
-    maxWidth: 200,
-    minHeight: 1,
-    maxHeight: 150,
-    orthogonal: false,
-    restrict: false,
-    preserveAspectRatio: false,
-  };
+      enabled: true,
+      minWidth: 1,
+      maxWidth: 200,
+      minHeight: 1,
+      maxHeight: 150,
+      orthogonal: false,
+      restrict: false,
+      preserveAspectRatio: false,
+    };
 
   private rotatingOptions: {
     enabled: true;
@@ -105,6 +96,12 @@ export default class X6_Flow extends React.Component<Props, State> {
     settingType: "",
     canRedo: false,
     canUndo: false,
+    gridState: {
+      ...gridState
+    },
+    nodeState: {
+      ...nodeState
+    }
   };
 
   private padding = {
@@ -127,7 +124,7 @@ export default class X6_Flow extends React.Component<Props, State> {
       background: {
         color: "#F2F7FA",
       },
-      grid: grapState,
+      grid: this.state.gridState,
       connecting: {
         ...connectState,
         createEdge() {
@@ -275,10 +272,31 @@ export default class X6_Flow extends React.Component<Props, State> {
     });
 
     graph.on("node:click", () => {
+
+      // 
+      const cells = this.graph?.getSelectedCells() as Node[];
+      currNodes = cells;
+      const cell = cells![0];
+      const width = (cell as Node).size().width;
+      const height = (cell as Node).size().height;
+      const attrs = cell?.getAttrs();
+      const fill = attrs!['body']['fill'];
+      const stroke = attrs!['body']['stroke'];
+      const strokeWidth = attrs!['body']['strokeWidth'];
+      const strokeDasharray = attrs!['body']['strokeDasharray'];
+      // currNodeState.width = width;
+      // currNodeState.height = height;
+      currNodeState.fill = fill as string;
+      currNodeState.stroke = stroke as string;
+      currNodeState.strokeWidth = strokeWidth as number;
+      currNodeState.strokeDasharray = strokeDasharray as string;
+
       this.setState({
         ...this.state,
         settingType: "Node",
+        nodeState: { ...currNodeState }
       });
+
     });
 
     graph.on("edge:click", () => {
@@ -286,6 +304,7 @@ export default class X6_Flow extends React.Component<Props, State> {
         ...this.state,
         settingType: "Edge",
       });
+
     });
 
     graph.on("node:embedding", ({ e }: { e: Dom.MouseMoveEvent }) => {
@@ -300,10 +319,16 @@ export default class X6_Flow extends React.Component<Props, State> {
     });
 
     graph.on("blank:click", () => {
+      const myGridState: GraphState = {
+        ...(this.graph?.grid.grid)
+      }
       this.setState({
         ...this.state,
         settingType: "Graph",
+        ...myGridState
       });
+
+      // this.graph?.grid.grid = myGridState;
     });
 
     graph.on("node:mouseleave", ({ node }) => {
@@ -488,12 +513,18 @@ export default class X6_Flow extends React.Component<Props, State> {
       this.stencilContainer.appendChild(stencil.container);
 
     const n1 = this.graph.createNode({
-      shape: "rect",
+      shape: "app-react-node",
       x: 40,
       y: 40,
       width: 80,
       height: 40,
       label: "rect",
+      // markup: [
+      //   {
+      //     tagName: 'rect', // 标签名称
+      //     selector: 'body', // 选择器
+      //   },
+      // ],
       attrs: commonAttrs,
       tools: [
         {
@@ -780,6 +811,7 @@ export default class X6_Flow extends React.Component<Props, State> {
 
   private onExportJson = () => {
     const fileData = JSON.stringify(this.graph?.toJSON(), null, 2);
+
     const file = new File([fileData], "demo.json", {
       type: "text/plain;charset=utf-8",
     });
@@ -793,7 +825,10 @@ export default class X6_Flow extends React.Component<Props, State> {
         if (this.graph == null) {
           message.error("发生错误");
         }
-        this.graph?.fromJSON(JSON.parse(res));
+        const xxx = JSON.parse(res);
+        console.log('xxx', xxx);
+
+        this.graph?.fromJSON(xxx);
       });
     },
     customRequest: () => {
@@ -822,6 +857,14 @@ export default class X6_Flow extends React.Component<Props, State> {
     this.graph?.setGridSize(size);
   };
 
+  onNodeChange = (obj: any) => {
+    const currNodes = (this.graph?.getSelectedCells() as Node[]);
+    currNodes.forEach((node) => {
+      node.attr('body/' + obj.k, obj.v);
+    })
+    // 
+  }
+
   refContainer = (container: HTMLDivElement) => {
     this.container = container;
   };
@@ -832,7 +875,7 @@ export default class X6_Flow extends React.Component<Props, State> {
 
   render() {
     return (
-      <WorkspaceWrapper className="resizing-app selection-app">
+      <WorkspaceWrapper className="resizing-app selection-app react-shape-app">
         <ToolboxWrapper>
           <ToolBox
             uploadProps={this.uploadProps}
@@ -853,7 +896,7 @@ export default class X6_Flow extends React.Component<Props, State> {
             onUnGroup={this.onUnGroup}
             onExportJPEG={this.onExportJPEG}
             onExportJson={this.onExportJson}
-            // onImportJson={this.onImportJson}
+          // onImportJson={this.onImportJson}
           />
         </ToolboxWrapper>
         <StencilWrapper ref={this.refStencil} />
@@ -865,12 +908,11 @@ export default class X6_Flow extends React.Component<Props, State> {
             graphProps={{
               onGridSizeChange: this.onGridSizeChanged,
               onChange: this.onGridChanged,
-              state: grapState,
+              state: this.state.gridState,
             }}
             nodeProps={{
-              state: nodeState,
-              onChange: () => {},
-              onGridSizeChange: () => {},
+              state: currNodeState,
+              onChange: this.onNodeChange,
             }}
           />
         </SidebarWrapper>

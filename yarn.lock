@@ -373,6 +373,11 @@
   resolved "https://registry.npmmirror.com/@antv/x6-plugin-transform/-/x6-plugin-transform-2.1.7.tgz#37583b5283fbc0c4884f96e9689d2146837e042d"
   integrity sha512-idzBr8/Bcw8zHQUSNS0Y8VSNMigCWiUuiwqO572Ac/P2tMfP6Ot2SahEYHGUOD2NEMPr95q4JMZc+Evvt4JFTw==
 
+"@antv/x6-react-shape@^2.2.2":
+  version "2.2.2"
+  resolved "https://registry.npmjs.org/@antv/x6-react-shape/-/x6-react-shape-2.2.2.tgz#b0caf31219fa3219b4e7a4960583e2c3affb870c"
+  integrity sha512-uwehrdNCPkgBpVfsxEQk1M77Q+q9D7+HkqIm4Fm3Oz4kzkKCoc3KoxCIoLimbANAhqAPEJ40sRR0ZY+lzmP7WQ==
+
 "@antv/x6@^2.11.1":
   version "2.11.1"
   resolved "https://registry.npmmirror.com/@antv/x6/-/x6-2.11.1.tgz#d0ae8d9137b52bf1c3724c882c13ed9ac124d6fb"
@@ -1783,7 +1788,7 @@ file-entry-cache@^6.0.1:
 
 file-saver@^2.0.5:
   version "2.0.5"
-  resolved "https://registry.npmmirror.com/file-saver/-/file-saver-2.0.5.tgz#d61cfe2ce059f414d899e9dd6d4107ee25670c38"
+  resolved "https://registry.npmjs.org/file-saver/-/file-saver-2.0.5.tgz#d61cfe2ce059f414d899e9dd6d4107ee25670c38"
   integrity sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA==
 
 fill-range@^7.0.1:
