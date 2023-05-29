@@ -30,10 +30,9 @@ export const AppComponent = ({ node }: { node: Node }) => {
     </Dropdown>
   );
 };
-const commonAttrs = {
-  body: { ...defaultNodeState },
-};
+
 register({
+  inherit: 'rect',
   shape: "app-react-node",
   component: AppComponent,
   x: 40,
@@ -41,13 +40,13 @@ register({
   width: 80,
   height: 40,
   label: "rect",
-  markup: [
-    {
-      tagName: "rect", // 标签名称
-      selector: "body", // 选择器
+  attrs: {
+    body: {
+      ...defaultNodeState,
+      rx: 6,
+      ry: 6,
     },
-  ],
-  attrs: commonAttrs,
+  },
   ports: {
     groups: {
       top: {

@@ -90,15 +90,15 @@ export default class X6_Flow extends React.Component<Props, State> {
     restrict?: boolean;
     preserveAspectRatio?: boolean;
   } = {
-    enabled: true,
-    minWidth: 1,
-    maxWidth: 200,
-    minHeight: 1,
-    maxHeight: 150,
-    orthogonal: false,
-    restrict: false,
-    preserveAspectRatio: false,
-  };
+      enabled: true,
+      minWidth: 1,
+      maxWidth: 200,
+      minHeight: 1,
+      maxHeight: 150,
+      orthogonal: false,
+      restrict: false,
+      preserveAspectRatio: false,
+    };
 
   private rotatingOptions: {
     enabled: true;
@@ -372,6 +372,8 @@ export default class X6_Flow extends React.Component<Props, State> {
 
   onNodeChange = (obj: any) => {
     const currNodes = this.graph?.getSelectedCells() as Node[];
+    console.log(currNodes[0].prop());
+
     if (obj.k == "width" || obj.k == "height") {
       const s = {
         width: currNodes[0].size().width,
@@ -380,6 +382,8 @@ export default class X6_Flow extends React.Component<Props, State> {
       (s as any)[obj.k] = obj.v;
       currNodes[0].setSize(s);
     } else {
+      console.log(currNodes[0].getAttrs());
+
       currNodes.forEach((node) => {
         node.attr("body/" + obj.k, obj.v);
       });
@@ -404,7 +408,7 @@ export default class X6_Flow extends React.Component<Props, State> {
   };
   render() {
     return (
-      <WorkspaceWrapper style={{ height: "100%", width: "100%" }}>
+      <WorkspaceWrapper style={{ height: "100%", width: "100%" }} className="react-shape-app">
         <ToolboxWrapper id="toolbox">
           <ToolBox
             uploadProps={this.uploadProps}
@@ -425,11 +429,11 @@ export default class X6_Flow extends React.Component<Props, State> {
             onUnGroup={this.onUnGroup}
             onExportJPEG={this.onExportJPEG}
             onExportJson={this.onExportJson}
-            // onImportJson={this.onImportJson}
+          // onImportJson={this.onImportJson}
           />
         </ToolboxWrapper>
         <StencilWrapper id="stencil" ref={this.refStencil} />
-        <CanvasWrapper id="canvas" ref={this.refContainer} />
+        <CanvasWrapper className="app-content" id="canvas" ref={this.refContainer} />
         <SidebarWrapper>
           <SettingPanel
             type={this.state.settingType}
@@ -452,7 +456,7 @@ export default class X6_Flow extends React.Component<Props, State> {
 const WorkspaceWrapper = styled.div`
   display: grid;
   padding: 0;
-  grid-template-columns: 30rem 1fr 30rem;
+  grid-template-columns: 30rem 1fr 32rem;
   grid-template-rows: 6rem 1fr 6rem;
   grid-template-areas:
     "toolbox toolbox toolbox"
@@ -479,7 +483,6 @@ const SidebarWrapper = styled.div`
 
 const FooterWrapper = styled.div`
   grid-area: footer;
-  background-color: red;
 `;
 
 const ToolboxWrapper = styled.div`
