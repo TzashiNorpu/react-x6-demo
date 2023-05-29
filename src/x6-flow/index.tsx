@@ -10,52 +10,65 @@ import { Keyboard } from "@antv/x6-plugin-keyboard";
 import { History } from "@antv/x6-plugin-history";
 import { Scroller } from "@antv/x6-plugin-scroller";
 import { Export } from "@antv/x6-plugin-export";
-import { saveAs } from "file-saver";
 import "./index.less";
 import { ToolBox } from "./toolbox";
 import { UploadProps, message } from "antd";
-import { GraphState } from "./side/graph-setting";
+import { GridState } from "./side/graphSetting";
 import { SettingPanel } from "./side";
-import { nodeState } from './config/nodeState'
-import { gridState } from './config/gridState'
-import './stencil/app-node'
-import { NodeState } from "./side/node-setting";
+import "./stencil/appNode";
+import { defaultNodeState } from "./config/nodeState";
+import { defaultGridState } from "./config/gridState";
+import { NodeState } from "./side/nodeSetting";
+import { graphInitSetting } from "./config/graphInitSetting";
+import {
+  blankClick,
+  edgeClick,
+  historyChange,
+  nodeChangeParent,
+  nodeChangePosition,
+  nodeChangeSize,
+  nodeClick,
+  nodeEmbedded,
+  nodeEmbedding,
+  nodeMouseEnter,
+  nodeMouseLeave,
+} from "./config/graphOnHandler";
+import { ctlC, ctlV, ctlZ, del } from "./config/graphKeyBindHandler";
+import { stencilInitSetting } from "./config/stencilInitSetting";
+import {
+  backToolHandler,
+  contentCenterToolHandler,
+  copyToolHandler,
+  delToolHandler,
+  exportJPEGToolHandler,
+  exportJsonToolHandler,
+  frontToolHandler,
+  graphCenterToolHandler,
+  groupToolHandler,
+  pasteToolHandler,
+  redoToolHandler,
+  undoToolHandler,
+  ungroupToolHandler,
+  zoomInToolHandler,
+  zoomOutToolHandler,
+} from "./config/toolBoxHandler";
 
-let currNodeState: NodeState = {};
-let currNodes: Node[] = [];
+// const commonAttrs = {
+//   body: { ...defaultNodeState },
+// };
 
-const commonAttrs = {
-  body: { ...nodeState },
-};
 interface State {
   settingType: string;
   canUndo: boolean;
   canRedo: boolean;
-  gridState: GraphState;
-  nodeState: NodeState
+  gridState: GridState;
+  currNodeState: NodeState;
 }
 
-interface Props { }
+const currNodeState: NodeState = defaultNodeState;
+const gridState: GridState = defaultGridState;
 
-type ConnectState = {
-  allowBlank: boolean;
-  allowMulti: boolean;
-  allowLoop: boolean;
-  allowNode: boolean;
-  allowEdge: boolean;
-  allowPort: boolean;
-};
-
-const connectState: ConnectState = {
-  allowBlank: false,
-  allowMulti: true,
-  allowLoop: true,
-  allowNode: true,
-  allowEdge: true,
-  allowPort: true,
-};
-
-
+type Props = any;
 
 export default class X6_Flow extends React.Component<Props, State> {
   private container: HTMLDivElement | null = null;
@@ -77,15 +90,15 @@ export default class X6_Flow extends React.Component<Props, State> {
     restrict?: boolean;
     preserveAspectRatio?: boolean;
   } = {
-      enabled: true,
-      minWidth: 1,
-      maxWidth: 200,
-      minHeight: 1,
-      maxHeight: 150,
-      orthogonal: false,
-      restrict: false,
-      preserveAspectRatio: false,
-    };
+    enabled: true,
+    minWidth: 1,
+    maxWidth: 200,
+    minHeight: 1,
+    maxHeight: 150,
+    orthogonal: false,
+    restrict: false,
+    preserveAspectRatio: false,
+  };
 
   private rotatingOptions: {
     enabled: true;
@@ -96,12 +109,8 @@ export default class X6_Flow extends React.Component<Props, State> {
     settingType: "",
     canRedo: false,
     canUndo: false,
-    gridState: {
-      ...gridState
-    },
-    nodeState: {
-      ...nodeState
-    }
+    gridState,
+    currNodeState,
   };
 
   private padding = {
@@ -111,85 +120,15 @@ export default class X6_Flow extends React.Component<Props, State> {
     bottom: 20,
   };
 
-  private count = 0;
-
   componentDidMount() {
+    // d[0].style.width = "100%";
+    // d[0].style.height = "100%";
     if (this.container == null) {
       message.error("初始化错误");
       return;
     }
 
-    const graph = new Graph({
-      container: this.container,
-      background: {
-        color: "#F2F7FA",
-      },
-      grid: this.state.gridState,
-      connecting: {
-        ...connectState,
-        createEdge() {
-          return this.createEdge({
-            attrs: {
-              line: {
-                stroke: "#8f8f8f",
-                strokeWidth: 1,
-              },
-            },
-            tools: [
-              {
-                name: "edge-editor",
-                args: {
-                  attrs: {
-                    backgroundColor: "#fff",
-                  },
-                },
-              },
-            ],
-          });
-        },
-        validateConnection({ targetCell }) {
-          if (targetCell?.isNode()) {
-            const ports = (targetCell as Node).getPorts();
-            ports.forEach((port) => {
-              (targetCell as Node).portProp(
-                port.id!,
-                "attrs/circle/display",
-                "inline"
-              );
-            });
-          }
-          return true;
-        },
-        allowNode(args) {
-          return true;
-        },
-      },
-      mousewheel: {
-        enabled: true,
-        modifiers: ["ctrl", "meta"],
-      },
-      scaling: {
-        min: 0.05, // 默认值为 0.01
-        max: 12, // 默认值为 16
-      },
-      embedding: {
-        enabled: true,
-        // findParent({ node }) {
-        //   const bbox = node.getBBox();
-        //   return this.getNodes().filter((item) => {
-        //     const data = item.getData<{ parent: boolean }>();
-        //     if (data && data.parent) {
-        //       const targetBBox = item.getBBox();
-        //       const tt = bbox.isIntersectWithRect(targetBBox);
-        //       console.log("find", tt);
-        //       return tt;
-        //     }
-        //     return false;
-        //   });
-        // },
-      },
-    });
-    this.graph = graph;
+    this.graph = new Graph(graphInitSetting(this));
 
     if (this.graph == undefined || this.graph == null) {
       message.error("初始化错误");
@@ -207,325 +146,116 @@ export default class X6_Flow extends React.Component<Props, State> {
       })
     );
 
-    graph.use(new Export());
-
-    this.graph.use(
-      new Clipboard({
-        enabled: true,
-        // useLocalStorage: true,
-      })
-    );
-    this.graph.use(
-      new Snapline({
-        enabled: true,
-        sharp: true,
-      })
-    );
-
-    this.graph.use(
-      new Keyboard({
-        enabled: true,
-        global: true,
-      })
-    );
-
-    this.graph.use(
-      new Transform({
-        resizing: this.resizingOptions,
-        rotating: this.rotatingOptions,
-      })
-    );
-
-    this.graph.use(
-      new History({
-        enabled: true,
-      })
-    );
-
-    this.graph.use(
-      new Scroller({
-        enabled: true,
-        pageVisible: true,
-        pageBreak: true,
-        // pannable: true,
-      })
-    );
+    this.graph
+      .use(new Export())
+      .use(
+        new Clipboard({
+          enabled: true,
+          // useLocalStorage: true,
+        })
+      )
+      .use(
+        new Snapline({
+          enabled: true,
+          sharp: true,
+        })
+      )
+      .use(
+        new Keyboard({
+          enabled: true,
+          global: true,
+        })
+      )
+      .use(
+        new Transform({
+          resizing: this.resizingOptions,
+          rotating: this.rotatingOptions,
+        })
+      )
+      .use(
+        new History({
+          enabled: true,
+        })
+      )
+      .use(
+        new Scroller({
+          enabled: true,
+          pageVisible: true,
+          pageBreak: true,
+          // pannable: true,
+        })
+      );
 
     this.graph.on("history:change", () => {
-      if (this.graph == null) {
-        message.error("初始化错误");
-        return;
-      }
-      this.setState({
-        ...this.state,
-        canRedo: this.graph.canRedo(),
-        canUndo: this.graph.canUndo(),
-      });
+      historyChange(this);
     });
 
     this.graph.on("node:change:parent", ({ node }) => {
-      node.attr({
-        label: {
-          text: `Child\n(embed)-${this.count++}`,
-        },
-      });
+      nodeChangeParent(node);
     });
 
-    graph.on("node:click", () => {
-
-      // 
-      const cells = this.graph?.getSelectedCells() as Node[];
-      currNodes = cells;
-      const cell = cells![0];
-      const width = (cell as Node).size().width;
-      const height = (cell as Node).size().height;
-      const attrs = cell?.getAttrs();
-      const fill = attrs!['body']['fill'];
-      const stroke = attrs!['body']['stroke'];
-      const strokeWidth = attrs!['body']['strokeWidth'];
-      const strokeDasharray = attrs!['body']['strokeDasharray'];
-      // currNodeState.width = width;
-      // currNodeState.height = height;
-      currNodeState.fill = fill as string;
-      currNodeState.stroke = stroke as string;
-      currNodeState.strokeWidth = strokeWidth as number;
-      currNodeState.strokeDasharray = strokeDasharray as string;
-
-      this.setState({
-        ...this.state,
-        settingType: "Node",
-        nodeState: { ...currNodeState }
-      });
-
+    this.graph.on("node:click", () => {
+      nodeClick(this, currNodeState);
     });
 
-    graph.on("edge:click", () => {
-      this.setState({
-        ...this.state,
-        settingType: "Edge",
-      });
-
+    this.graph.on("edge:click", () => {
+      edgeClick(this);
     });
 
-    graph.on("node:embedding", ({ e }: { e: Dom.MouseMoveEvent }) => {
-      this.ctrlPressed = e.metaKey || e.ctrlKey;
+    this.graph.on("node:embedding", ({ e }: { e: Dom.MouseMoveEvent }) => {
+      nodeEmbedding(this, e);
     });
 
-    graph.on("node:mouseenter", ({ e, node }) => {
-      const ports = node.getPorts();
-      ports.forEach((port) => {
-        node.portProp(port.id!, "attrs/circle/display", "inline");
-      });
+    this.graph.on("node:mouseenter", ({ e, node }) => {
+      nodeMouseEnter(node);
     });
 
-    graph.on("blank:click", () => {
-      const myGridState: GraphState = {
-        ...(this.graph?.grid.grid)
-      }
-      this.setState({
-        ...this.state,
-        settingType: "Graph",
-        ...myGridState
-      });
-
-      // this.graph?.grid.grid = myGridState;
+    this.graph.on("blank:click", () => {
+      blankClick(this);
     });
 
-    graph.on("node:mouseleave", ({ node }) => {
-      const ports = node.getPorts();
-      ports.forEach((port) => {
-        node.portProp(port.id!, "attrs/circle/display", "none");
-      });
+    this.graph.on("node:mouseleave", ({ node }) => {
+      nodeMouseLeave(node);
     });
 
-    graph.on("node:embedded", () => {
-      this.ctrlPressed = false;
+    this.graph.on("node:embedded", () => {
+      nodeEmbedded(this);
     });
 
-    graph.on("node:change:size", ({ node, options }) => {
-      if (options.skipParentHandler) {
-        return;
-      }
-
-      const children = node.getChildren();
-      if (children && children.length) {
-        node.prop("originSize", node.getSize());
-      }
+    this.graph.on("node:change:size", ({ node, options }) => {
+      nodeChangeSize(node, options);
     });
 
-    graph.on("node:change:position", ({ node, options }) => {
-      if (options.skipParentHandler || this.ctrlPressed) {
-        return;
-      }
-
-      const children = node.getChildren();
-      if (children && children.length) {
-        node.prop("originPosition", node.getPosition());
-      }
-
-      const parent = node.getParent();
-      if (parent && parent.isNode()) {
-        let originSize = parent.prop("originSize");
-        if (originSize == null) {
-          originSize = parent.getSize();
-          parent.prop("originSize", originSize);
-        }
-
-        let originPosition = parent.prop("originPosition");
-        if (originPosition == null) {
-          originPosition = parent.getPosition();
-          parent.prop("originPosition", originPosition);
-        }
-
-        let x = originPosition.x;
-        let y = originPosition.y;
-        let cornerX = originPosition.x + originSize.width;
-        let cornerY = originPosition.y + originSize.height;
-        let hasChange = false;
-
-        const children = parent.getChildren();
-        if (children) {
-          children.forEach((child) => {
-            const bbox = child.getBBox().inflate(this.embedPadding);
-            const corner = bbox.getCorner();
-
-            if (bbox.x < x) {
-              x = bbox.x;
-              hasChange = true;
-            }
-
-            if (bbox.y < y) {
-              y = bbox.y;
-              hasChange = true;
-            }
-
-            if (corner.x > cornerX) {
-              cornerX = corner.x;
-              hasChange = true;
-            }
-
-            if (corner.y > cornerY) {
-              cornerY = corner.y;
-              hasChange = true;
-            }
-          });
-        }
-        if (hasChange) {
-          parent.prop(
-            {
-              position: { x, y },
-              size: { width: cornerX - x, height: cornerY - y },
-            },
-            // Note that we also pass a flag so that we know we shouldn't
-            // adjust the `originPosition` and `originSize` in our handlers.
-            { skipParentHandler: true }
-          );
-        }
-      }
+    this.graph.on("node:change:position", ({ node, options }) => {
+      nodeChangePosition(this, node, options);
     });
 
     this.graph.center();
 
     // ctrl+c ctrl+v
     this.graph.bindKey("ctrl+c", () => {
-      if (this.graph == null) return;
-      const cells = this.graph.getSelectedCells();
-      if (cells.length) {
-        cells.forEach((cell) => {
-          const descendants = cell.getDescendants();
-          console.log("des", descendants);
-          cells.push(...descendants);
-        });
-        this.graph.select(cells);
-        this.graph.copy(cells);
-      }
-      return false;
+      ctlC(this);
     });
 
     this.graph.bindKey("ctrl+v", () => {
-      if (this.graph == null) return;
-      if (!this.graph.isClipboardEmpty()) {
-        const cells = this.graph.paste(this.copyOptions);
-        this.graph.cleanSelection();
-        this.graph.select(cells);
-      }
-      return false;
+      ctlV(this);
     });
 
     this.graph.bindKey("ctrl+z", () => {
-      if (this.graph == null) return;
-      this.graph.undo();
-      return false;
+      ctlZ(this);
     });
 
     this.graph.bindKey("delete", () => {
-      if (this.graph == null) return;
-      const cells = this.graph.getSelectedCells();
-      cells.map((cell) => cell.remove());
+      del(this);
     });
 
-    const stencil = new Stencil({
-      title: "Components",
-      target: this.graph,
-      search(cell, keyword) {
-        return cell.shape.indexOf(keyword) !== -1;
-      },
-      placeholder: "Search by shape name",
-      notFoundText: "Not Found",
-      collapsable: true,
-      getDragNode(node) {
-        // 这里返回一个新的节点作为拖拽节点
-        const clone = node.clone();
-        clone.addPorts([
-          {
-            id: "port1",
-            group: "top",
-          },
-          {
-            id: "port2",
-            group: "right",
-          },
-          {
-            id: "port3",
-            group: "bottom",
-          },
-          {
-            id: "port4",
-            group: "left",
-          },
-        ]);
-        clone.getPorts().forEach((port) => {
-          clone.portProp(port.id!, "attrs/circle/display", "none");
-        });
-        return clone;
-      },
-      stencilGraphWidth: 200,
-      stencilGraphHeight: 100,
-      groups: [
-        {
-          name: "group1",
-          title: "Group(Collapsable)",
-        },
-      ],
-    });
+    const stencil = new Stencil(stencilInitSetting(this));
 
     if (this.stencilContainer != undefined)
       this.stencilContainer.appendChild(stencil.container);
 
     const n1 = this.graph.createNode({
       shape: "app-react-node",
-      x: 40,
-      y: 40,
-      width: 80,
-      height: 40,
-      label: "rect",
-      // markup: [
-      //   {
-      //     tagName: 'rect', // 标签名称
-      //     selector: 'body', // 选择器
-      //   },
-      // ],
-      attrs: commonAttrs,
       tools: [
         {
           name: "node-editor",
@@ -536,286 +266,71 @@ export default class X6_Flow extends React.Component<Props, State> {
           },
         },
       ],
-      ports: {
-        groups: {
-          top: {
-            position: "top",
-            attrs: {
-              circle: {
-                magnet: true,
-                stroke: "#8f8f8f",
-                r: 5,
-              },
-            },
-          },
-          right: {
-            position: "right",
-            attrs: {
-              circle: {
-                magnet: true,
-                stroke: "#8f8f8f",
-                r: 5,
-              },
-            },
-          },
-          bottom: {
-            position: "bottom",
-            attrs: {
-              circle: {
-                magnet: true,
-                stroke: "#8f8f8f",
-                r: 5,
-              },
-            },
-          },
-          left: {
-            position: "left",
-            attrs: {
-              circle: {
-                magnet: true,
-                stroke: "#8f8f8f",
-                r: 5,
-              },
-            },
-          },
-        },
-      },
     });
 
-    const n2 = this.graph.createNode({
-      shape: "circle",
-      x: 180,
-      y: 40,
-      width: 40,
-      height: 40,
-      label: "circle",
-      attrs: commonAttrs,
-      tools: [
-        {
-          name: "node-editor",
-          args: {
-            attrs: {
-              backgroundColor: "#EFF4FF",
-            },
-          },
-        },
-      ],
-      ports: {
-        groups: {
-          top: {
-            position: "top",
-            attrs: {
-              circle: {
-                magnet: true,
-                stroke: "#8f8f8f",
-                r: 5,
-              },
-            },
-          },
-          right: {
-            position: "right",
-            attrs: {
-              circle: {
-                magnet: true,
-                stroke: "#8f8f8f",
-                r: 5,
-              },
-            },
-          },
-          bottom: {
-            position: "bottom",
-            attrs: {
-              circle: {
-                magnet: true,
-                stroke: "#8f8f8f",
-                r: 5,
-              },
-            },
-          },
-          left: {
-            position: "left",
-            attrs: {
-              circle: {
-                magnet: true,
-                stroke: "#8f8f8f",
-                r: 5,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    stencil.load([n1, n2], "group1");
-    this.graph = graph;
+    stencil.load([n1], "group1");
   }
   // copy
   private onCopy = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    const cells = this.graph.getSelectedCells();
-    if (cells && cells.length) {
-      this.graph.copy(cells, this.copyOptions);
-      message.success("复制成功");
-    } else {
-      message.info("请先选中节点再复制");
-    }
+    copyToolHandler(this);
   };
 
   // paste
   private onPaste = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    if (this.graph.isClipboardEmpty()) {
-      message.info("剪切板为空，不可粘贴");
-    } else {
-      const cells = this.graph.paste(this.copyOptions);
-      this.graph.cleanSelection();
-      this.graph.select(cells);
-      message.success("粘贴成功");
-    }
+    pasteToolHandler(this);
   };
 
   // redo undo
   onUndo = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    this.graph.undo();
+    undoToolHandler(this);
   };
 
   onRedo = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    this.graph.redo();
+    redoToolHandler(this);
   };
 
   onGraphCenter = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    this.graph.center();
+    graphCenterToolHandler(this);
   };
 
   onContentCenter = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    this.graph.centerContent();
-    this.graph.zoomToFit({
-      padding: this.padding,
-    });
+    contentCenterToolHandler(this);
   };
   onToBack = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    const cells = this.graph.getSelectedCells();
-    if (cells && cells.length) {
-      cells.map((cell) => cell.toBack());
-    } else {
-      message.info("请先选中节点再调整");
-    }
+    backToolHandler(this);
   };
   onToFront = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    const cells = this.graph.getSelectedCells();
-    if (cells && cells.length) {
-      cells.map((cell) => cell.toFront());
-    } else {
-      message.info("请先选中节点再调整");
-    }
+    frontToolHandler(this);
   };
 
   onZoomIn = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    const zoom = this.graph.zoom();
-    this.graph.zoomTo(zoom - 0.1);
+    zoomInToolHandler(this);
   };
 
   onZoomOut = () => {
-    if (this.graph == null) {
-      message.error("发生错误");
-      return;
-    }
-    const zoom = this.graph.zoom();
-    this.graph.zoomTo(zoom + 0.1);
+    zoomOutToolHandler(this);
   };
 
   onDelete = () => {
-    if (this.graph == null) return;
-    const cells = this.graph.getSelectedCells();
-    cells.map((cell) => cell.remove());
+    delToolHandler(this);
   };
 
   onGroup = () => {
-    if (this.graph == null) return;
-    const parent = this.graph.addNode({
-      shape: "rect",
-      zIndex: -100,
-      x: 40,
-      y: 40,
-      width: 360,
-      height: 160,
-    });
-    const cells = this.graph.getSelectedCells();
-    cells.forEach((cell) => {
-      parent.addChild(cell);
-    });
-    parent.fit({
-      padding: this.padding,
-    });
+    groupToolHandler(this);
   };
 
   onUnGroup = () => {
-    if (this.graph == null) return;
-    const cells = this.graph.getSelectedCells();
-    cells.forEach((cell) => {
-      const descendants = cell.getDescendants();
-      descendants.forEach((descendant) => {
-        descendant.removeFromParent();
-      });
-      this.graph?.copy(descendants);
-      this.graph?.paste(this.copyOptions);
-    });
-  };
-
-  jpegOption: Export.ToImageOptions = {
-    width: 1000,
-    height: 1000,
-    padding: 10,
-    quality: 1,
+    ungroupToolHandler(this);
   };
 
   private onExportJPEG = () => {
-    this.graph?.exportJPEG("demo.jpeg", this.jpegOption);
+    exportJPEGToolHandler(this);
   };
 
   jsonOptions: Model.ToJSONOptions = {};
 
   private onExportJson = () => {
-    const fileData = JSON.stringify(this.graph?.toJSON(), null, 2);
-
-    const file = new File([fileData], "demo.json", {
-      type: "text/plain;charset=utf-8",
-    });
-    saveAs(file);
+    exportJsonToolHandler(this);
   };
 
   uploadProps: UploadProps = {
@@ -826,8 +341,6 @@ export default class X6_Flow extends React.Component<Props, State> {
           message.error("发生错误");
         }
         const xxx = JSON.parse(res);
-        console.log('xxx', xxx);
-
         this.graph?.fromJSON(xxx);
       });
     },
@@ -858,12 +371,29 @@ export default class X6_Flow extends React.Component<Props, State> {
   };
 
   onNodeChange = (obj: any) => {
-    const currNodes = (this.graph?.getSelectedCells() as Node[]);
-    currNodes.forEach((node) => {
-      node.attr('body/' + obj.k, obj.v);
-    })
-    // 
-  }
+    const currNodes = this.graph?.getSelectedCells() as Node[];
+    if (obj.k == "width" || obj.k == "height") {
+      const s = {
+        width: currNodes[0].size().width,
+        height: currNodes[0].size().height,
+      };
+      (s as any)[obj.k] = obj.v;
+      currNodes[0].setSize(s);
+    } else {
+      currNodes.forEach((node) => {
+        node.attr("body/" + obj.k, obj.v);
+      });
+    }
+    //
+    const temp = {
+      ...this.state.currNodeState,
+    };
+    (temp as any)[obj.k] = obj.v;
+    this.setState({
+      ...this.state,
+      currNodeState: temp,
+    });
+  };
 
   refContainer = (container: HTMLDivElement) => {
     this.container = container;
@@ -872,11 +402,10 @@ export default class X6_Flow extends React.Component<Props, State> {
   refStencil = (container: HTMLDivElement) => {
     this.stencilContainer = container;
   };
-
   render() {
     return (
-      <WorkspaceWrapper className="resizing-app selection-app react-shape-app">
-        <ToolboxWrapper>
+      <WorkspaceWrapper style={{ height: "100%", width: "100%" }}>
+        <ToolboxWrapper id="toolbox">
           <ToolBox
             uploadProps={this.uploadProps}
             onCopy={this.onCopy}
@@ -896,12 +425,11 @@ export default class X6_Flow extends React.Component<Props, State> {
             onUnGroup={this.onUnGroup}
             onExportJPEG={this.onExportJPEG}
             onExportJson={this.onExportJson}
-          // onImportJson={this.onImportJson}
+            // onImportJson={this.onImportJson}
           />
         </ToolboxWrapper>
-        <StencilWrapper ref={this.refStencil} />
-
-        <CanvasWrapper className="app-content" ref={this.refContainer} />
+        <StencilWrapper id="stencil" ref={this.refStencil} />
+        <CanvasWrapper id="canvas" ref={this.refContainer} />
         <SidebarWrapper>
           <SettingPanel
             type={this.state.settingType}
@@ -911,11 +439,12 @@ export default class X6_Flow extends React.Component<Props, State> {
               state: this.state.gridState,
             }}
             nodeProps={{
-              state: currNodeState,
+              state: this.state.currNodeState,
               onChange: this.onNodeChange,
             }}
           />
         </SidebarWrapper>
+        <FooterWrapper />
       </WorkspaceWrapper>
     );
   }
@@ -924,12 +453,11 @@ const WorkspaceWrapper = styled.div`
   display: grid;
   padding: 0;
   grid-template-columns: 30rem 1fr 30rem;
-  grid-template-rows: 6rem 1fr 5rem;
+  grid-template-rows: 6rem 1fr 6rem;
   grid-template-areas:
     "toolbox toolbox toolbox"
     "stencil canvas sidebar"
     "footer footer footer";
-  height: 100%;
 `;
 
 const StencilWrapper = styled.div`
@@ -951,6 +479,7 @@ const SidebarWrapper = styled.div`
 
 const FooterWrapper = styled.div`
   grid-area: footer;
+  background-color: red;
 `;
 
 const ToolboxWrapper = styled.div`

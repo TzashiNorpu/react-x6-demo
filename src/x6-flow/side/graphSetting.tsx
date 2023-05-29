@@ -4,10 +4,10 @@ import { Input, Select, Slider, Card, Row, Col } from "antd";
 export interface GrapSettingProps {
   onGridSizeChange: (size: number) => void;
   onChange: (res: any) => void;
-  state: GraphState;
+  state: GridState;
 }
 
-export interface GraphState {
+export interface GridState {
   visible: boolean;
   type: string;
   size: number;
@@ -20,9 +20,9 @@ export interface GraphState {
 
 export class GraphSettings extends React.Component<
   GrapSettingProps,
-  GraphState
+  GridState
 > {
-  state: GraphState = this.props.state;
+  state: GridState = this.props.state;
   //  {
   //   type: "dot",
   //   size: 10,

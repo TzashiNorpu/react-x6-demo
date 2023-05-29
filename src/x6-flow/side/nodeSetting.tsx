@@ -14,28 +14,27 @@ export interface NodeState {
 }
 
 export const NodeSettings = (props: NodeSettingProps) => {
-
   const onWidthChanged = (width: number) => {
-    props.onChange({ 'k': 'width', 'v': width });
+    props.onChange({ k: "width", v: width });
   };
   const onHeightChanged = (height: number) => {
-    props.onChange({ 'k': 'height', 'v': height });
+    props.onChange({ k: "height", v: height });
   };
 
   const onNodeColorChanged = (e: any) => {
-    props.onChange({ 'k': 'fill', 'v': e.target.value });
+    props.onChange({ k: "fill", v: e.target.value });
   };
 
   const onStrokeWidthChanged = (strokeWidth: number) => {
-    props.onChange({ 'k': 'strokeWidth', 'v': strokeWidth });
+    props.onChange({ k: "strokeWidth", v: strokeWidth });
   };
 
   const onStrokeColorChanged = (e: any) => {
-    props.onChange({ 'k': 'stroke', 'v': e.target.value });
+    props.onChange({ k: "stroke", v: e.target.value });
   };
 
   const onStrokeTypeChanged = (strokeDasharray: string) => {
-    props.onChange({ 'k': strokeDasharray, 'v': strokeDasharray });
+    props.onChange({ k: "strokeDasharray", v: strokeDasharray });
   };
 
   return (
@@ -50,7 +49,7 @@ export const NodeSettings = (props: NodeSettingProps) => {
         <Col span={13}>
           <Slider
             min={1}
-            max={20}
+            max={200}
             step={1}
             value={props.state.width}
             onChange={onWidthChanged}
@@ -65,7 +64,7 @@ export const NodeSettings = (props: NodeSettingProps) => {
         <Col span={13}>
           <Slider
             min={1}
-            max={20}
+            max={100}
             step={1}
             value={props.state.height}
             onChange={onHeightChanged}

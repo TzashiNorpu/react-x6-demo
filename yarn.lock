@@ -375,7 +375,7 @@
 
 "@antv/x6-react-shape@^2.2.2":
   version "2.2.2"
-  resolved "https://registry.npmjs.org/@antv/x6-react-shape/-/x6-react-shape-2.2.2.tgz#b0caf31219fa3219b4e7a4960583e2c3affb870c"
+  resolved "https://registry.npmmirror.com/@antv/x6-react-shape/-/x6-react-shape-2.2.2.tgz#b0caf31219fa3219b4e7a4960583e2c3affb870c"
   integrity sha512-uwehrdNCPkgBpVfsxEQk1M77Q+q9D7+HkqIm4Fm3Oz4kzkKCoc3KoxCIoLimbANAhqAPEJ40sRR0ZY+lzmP7WQ==
 
 "@antv/x6@^2.11.1":

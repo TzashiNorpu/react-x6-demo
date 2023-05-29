@@ -1,5 +1,5 @@
-import { GrapSettingProps, GraphSettings } from "./graph-setting";
-import { NodeSettingProps, NodeSettings } from "./node-setting";
+import { GrapSettingProps, GraphSettings } from "./graphSetting";
+import { NodeSettingProps, NodeSettings } from "./nodeSetting";
 
 type SideSetting = {
   type: string;

@@ -1,7 +1,7 @@
-import { NodeState } from "../side/node-setting";
+import { NodeState } from "../side/nodeSetting";
 
-export const nodeState: NodeState = {
-    fill: "#ffffff",
-    stroke: "#8f8f8f",
-    strokeWidth: 1,
+export const defaultNodeState: NodeState = {
+  fill: "#ffffff",
+  stroke: "#8f8f8f",
+  strokeWidth: 1,
 };
