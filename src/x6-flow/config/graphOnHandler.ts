@@ -145,8 +145,8 @@ export const nodeEmbedding = (
   if (candidateParent.getZIndex() == undefined || node.getZIndex() == undefined)
     return;
   if ((candidateParent.getZIndex() as number) > (node.getZIndex() as number)) {
-    candidateParent.toBack();
     candidateParent.getDescendants().forEach((node) => node.toBack());
+    candidateParent.toBack();
   }
 };
 export const nodeEmbedded = (obj: any) => {
