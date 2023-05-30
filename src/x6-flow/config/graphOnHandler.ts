@@ -1,6 +1,7 @@
 import type { Cell, Dom, Node } from "@antv/x6";
 import { NodeState } from "../side/nodeSetting";
 import { message } from "antd";
+import { Descend } from "@icon-park/react";
 
 export const edgeClick = (obj: any) => () => {
   obj.setState({
@@ -144,9 +145,30 @@ export const nodeEmbedding = (
   if (candidateParent == null || candidateParent == undefined) return;
   if (candidateParent.getZIndex() == undefined || node.getZIndex() == undefined)
     return;
-  if ((candidateParent.getZIndex() as number) > (node.getZIndex() as number)) {
-    candidateParent.getDescendants().forEach((node) => node.toBack());
-    candidateParent.toBack();
+  // if ((candidateParent.getZIndex() as number) > (node.getZIndex() as number)) {
+  //   candidateParent.getDescendants().forEach((node) => node.toBack());
+  //   candidateParent.toBack();
+  // }
+
+  const minNodeZIndex = Math.min(
+    ...node
+      .getDescendants()
+      .map((d) => d.getZIndex() as number)
+      .concat(node.getZIndex() as number)
+  );
+
+  const parentMaxZIndex = Math.max(
+    ...candidateParent
+      .getDescendants()
+      .map((d) => d.getZIndex() as number)
+      .concat(candidateParent.getZIndex() as number)
+  );
+  if (minNodeZIndex <= parentMaxZIndex) {
+    const d = parentMaxZIndex - minNodeZIndex + 1;
+    candidateParent.setZIndex((candidateParent.getZIndex() as number) - d);
+    candidateParent.getDescendants().forEach((descend) => {
+      descend.setZIndex((descend.getZIndex() as number) - d);
+    });
   }
 };
 export const nodeEmbedded = (obj: any) => {
