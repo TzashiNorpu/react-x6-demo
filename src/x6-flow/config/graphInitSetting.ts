@@ -1,5 +1,4 @@
-import { Dom, Graph, Node } from "@antv/x6";
-import { defaultGridState } from "./gridState";
+import { Node } from "@antv/x6";
 import type { Options } from "@antv/x6/lib/graph/options";
 
 type ConnectState = {
@@ -20,26 +19,9 @@ const connectState: ConnectState = {
   allowPort: true,
 };
 
-Graph.registerGrid("red-dot", {
-  color: "red",
-  thickness: 1,
-  markup: "rect",
-  update(elem, options) {
-    const width = options.thickness * options.sx;
-    const height = options.thickness * options.sy;
-    Dom.attr(elem, {
-      width,
-      height,
-      rx: width,
-      ry: height,
-      fill: options.color,
-    });
-  },
-});
-
-export const graphInitSetting = (g: any): Options.Manual => {
+export const graphInitSetting = (obj: any): Options.Manual => {
   return {
-    container: g.container,
+    container: obj.container,
     background: {
       color: "#F2F7FA",
     },
@@ -47,8 +29,15 @@ export const graphInitSetting = (g: any): Options.Manual => {
     grid: true,
     connecting: {
       ...connectState,
+      router: {
+        name: "manhattan",
+        args: {
+          startDirections: ["top"],
+          endDirections: ["bottom"],
+        },
+      },
       createEdge() {
-        return g.createEdge({
+        return obj.graph.createEdge({
           attrs: {
             line: {
               stroke: "#8f8f8f",

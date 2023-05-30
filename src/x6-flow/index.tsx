@@ -52,6 +52,7 @@ import {
   zoomInToolHandler,
   zoomOutToolHandler,
 } from "./config/toolBoxHandler";
+import { Portal } from "@antv/x6-react-shape";
 
 // const commonAttrs = {
 //   body: { ...defaultNodeState },
@@ -63,6 +64,7 @@ interface State {
   canRedo: boolean;
   gridState: GridState;
   currNodeState: NodeState;
+  graph: Graph | null;
 }
 
 const currNodeState: NodeState = defaultNodeState;
@@ -70,6 +72,8 @@ const gridState: GridState = defaultGridState;
 
 type Props = any;
 
+const X6ReactPortalProvider = Portal.getProvider(); // 注意，一个 graph 只能申明一个 portal provider
+export const GraphContext = React.createContext({} as Graph);
 export default class X6_Flow extends React.Component<Props, State> {
   private container: HTMLDivElement | null = null;
   private stencilContainer: HTMLDivElement | null = null;
@@ -90,15 +94,15 @@ export default class X6_Flow extends React.Component<Props, State> {
     restrict?: boolean;
     preserveAspectRatio?: boolean;
   } = {
-      enabled: true,
-      minWidth: 1,
-      maxWidth: 200,
-      minHeight: 1,
-      maxHeight: 150,
-      orthogonal: false,
-      restrict: false,
-      preserveAspectRatio: false,
-    };
+    enabled: true,
+    minWidth: 1,
+    maxWidth: 200,
+    minHeight: 1,
+    maxHeight: 150,
+    orthogonal: false,
+    restrict: false,
+    preserveAspectRatio: false,
+  };
 
   private rotatingOptions: {
     enabled: true;
@@ -111,6 +115,7 @@ export default class X6_Flow extends React.Component<Props, State> {
     canUndo: false,
     gridState,
     currNodeState,
+    graph: null,
   };
 
   private padding = {
@@ -121,8 +126,6 @@ export default class X6_Flow extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    // d[0].style.width = "100%";
-    // d[0].style.height = "100%";
     if (this.container == null) {
       message.error("初始化错误");
       return;
@@ -135,18 +138,17 @@ export default class X6_Flow extends React.Component<Props, State> {
       return;
     }
 
-    this.graph.use(
-      new Selection({
-        enabled: true,
-        multiple: true,
-        rubberband: true,
-        movable: true,
-        // showNodeSelectionBox: true,
-        // showEdgeSelectionBox: true,
-      })
-    );
-
     this.graph
+      .use(
+        new Selection({
+          enabled: true,
+          multiple: true,
+          rubberband: true,
+          movable: true,
+          // showNodeSelectionBox: true,
+          // showEdgeSelectionBox: true,
+        })
+      )
       .use(new Export())
       .use(
         new Clipboard({
@@ -202,9 +204,22 @@ export default class X6_Flow extends React.Component<Props, State> {
       edgeClick(this);
     });
 
-    this.graph.on("node:embedding", ({ e }: { e: Dom.MouseMoveEvent }) => {
-      nodeEmbedding(this, e);
-    });
+    this.graph.on(
+      "node:embedding",
+      ({
+        e,
+        node,
+        candidateParent,
+        currentParent,
+      }: {
+        e: Dom.MouseMoveEvent;
+        node: Node;
+        currentParent: Node;
+        candidateParent: Node;
+      }) => {
+        nodeEmbedding(this, e, node, currentParent, candidateParent);
+      }
+    );
 
     this.graph.on("node:mouseenter", ({ e, node }) => {
       nodeMouseEnter(node);
@@ -269,6 +284,11 @@ export default class X6_Flow extends React.Component<Props, State> {
     });
 
     stencil.load([n1], "group1");
+
+    this.setState({
+      ...this.state,
+      graph: this.graph,
+    });
   }
   // copy
   private onCopy = () => {
@@ -382,10 +402,12 @@ export default class X6_Flow extends React.Component<Props, State> {
       (s as any)[obj.k] = obj.v;
       currNodes[0].setSize(s);
     } else {
-      console.log(currNodes[0].getAttrs());
-
       currNodes.forEach((node) => {
         node.attr("body/" + obj.k, obj.v);
+        const temp: any = {};
+        temp[obj.k] = obj.v;
+        console.log("temp", temp);
+        node.setData(temp);
       });
     }
     //
@@ -406,9 +428,13 @@ export default class X6_Flow extends React.Component<Props, State> {
   refStencil = (container: HTMLDivElement) => {
     this.stencilContainer = container;
   };
+
   render() {
     return (
-      <WorkspaceWrapper style={{ height: "100%", width: "100%" }} className="react-shape-app">
+      <WorkspaceWrapper style={{ height: "100%", width: "100%" }}>
+        <GraphContext.Provider value={this.state.graph!}>
+          <X6ReactPortalProvider />
+        </GraphContext.Provider>
         <ToolboxWrapper id="toolbox">
           <ToolBox
             uploadProps={this.uploadProps}
@@ -429,11 +455,11 @@ export default class X6_Flow extends React.Component<Props, State> {
             onUnGroup={this.onUnGroup}
             onExportJPEG={this.onExportJPEG}
             onExportJson={this.onExportJson}
-          // onImportJson={this.onImportJson}
+            // onImportJson={this.onImportJson}
           />
         </ToolboxWrapper>
         <StencilWrapper id="stencil" ref={this.refStencil} />
-        <CanvasWrapper className="app-content" id="canvas" ref={this.refContainer} />
+        <CanvasWrapper id="canvas" ref={this.refContainer} />
         <SidebarWrapper>
           <SettingPanel
             type={this.state.settingType}

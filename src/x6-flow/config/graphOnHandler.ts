@@ -133,8 +133,21 @@ export const nodeChangePosition = (
   }
 };
 
-export const nodeEmbedding = (obj: any, e: Dom.MouseMoveEvent) => {
+export const nodeEmbedding = (
+  obj: any,
+  e: Dom.MouseMoveEvent,
+  node: Node,
+  currentParent: Node,
+  candidateParent: Node
+) => {
   obj.ctrlPressed = e.metaKey || e.ctrlKey;
+  if (candidateParent == null || candidateParent == undefined) return;
+  if (candidateParent.getZIndex() == undefined || node.getZIndex() == undefined)
+    return;
+  if ((candidateParent.getZIndex() as number) > (node.getZIndex() as number)) {
+    candidateParent.toBack();
+    candidateParent.getDescendants().forEach((node) => node.toBack());
+  }
 };
 export const nodeEmbedded = (obj: any) => {
   obj.ctrlPressed = false;
